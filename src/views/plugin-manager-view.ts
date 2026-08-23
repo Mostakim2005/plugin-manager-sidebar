@@ -51,6 +51,7 @@ interface AppWithPluginManager extends App {
   plugins: PluginManagerApi;
   internalPlugins: InternalPluginsApi;
   setting?: SettingsApi;
+  commands?: CommandsApi;
 }
 
 interface PluginCommand {
@@ -804,8 +805,8 @@ export class PluginManagerView extends ItemView {
   }
 
   private getCommandsForPlugin(plugin?: ManagedPlugin): PluginCommand[] {
-    const commandsApi = this.app.commands as unknown as CommandsApi;
-    const listed = commandsApi.listCommands?.();
+    const commandsApi = (this.app as AppWithPluginManager).commands;
+    const listed = commandsApi?.listCommands?.();
     const commands: PluginCommand[] = [];
     if (!listed) return commands;
     const values = Array.isArray(listed) ? listed : Object.values(listed);
@@ -818,8 +819,8 @@ export class PluginManagerView extends ItemView {
   }
 
   private async executePluginCommand(command: PluginCommand, pluginId?: string): Promise<void> {
-    const commandsApi = this.app.commands as unknown as CommandsApi;
-    if (!commandsApi.executeCommandById) {
+    const commandsApi = (this.app as AppWithPluginManager).commands;
+    if (!commandsApi?.executeCommandById) {
       new Notice('Command execution is not available.');
       return;
     }
