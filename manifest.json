@@ -1,9 +1,10 @@
-{
-  "id": "plugin-manager-sidebar",
-  "name": "Plugin Manager Sidebar",
-  "version": "1.1.0",
-  "minAppVersion": "1.1.0",
-  "description": "Manage community plugins from a clean sidebar: search, enable, disable, pin, reorder, edit details, and uninstall.",
-  "author": "Your Name",
-  "isDesktopOnly": false
+﻿{
+    "id":  "plugin-manager-sidebar",
+    "name":  "Plugin Manager Sidebar",
+    "version":  "2.1.0",
+    "minAppVersion":  "1.1.0",
+    "description":  "A simple sidebar to search, enable, disable, pin, group and uninstall community plugins. Errors are logged to the console.",
+    "author":  "Mostakim2005",
+    "authorUrl":  "https://github.com/Mostakim2005",
+    "isDesktopOnly":  false
 }
