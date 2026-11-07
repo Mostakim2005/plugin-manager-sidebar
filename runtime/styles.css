@@ -1,0 +1,718 @@
+/* ==========================================================================
+   Plugin Manager Sidebar - Hybrid Glassmorphism + Material 3 Theme
+   ========================================================================== */
+
+:root {
+  --pms-glass-bg: var(--background-primary);
+  --pms-glass-header-bg: var(--background-secondary);
+  --pms-glass-card: var(--background-secondary);
+  --pms-glass-card-hover: var(--background-secondary-alt, var(--background-modifier-hover));
+  --pms-glass-blur: 16px;
+  --pms-glass-border: rgba(var(--interactive-accent-rgb, 0, 168, 132), 0.22);
+  --pms-glass-border-subtle: var(--background-modifier-border);
+  --pms-glass-glow: rgba(var(--interactive-accent-rgb, 0, 168, 132), 0.15);
+  --pms-glass-shadow: 0 16px 36px rgba(0, 0, 0, 0.32), 0 0 1px rgba(255, 255, 255, 0.1);
+  --pms-transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body:not(.pms-glassmorphic) {
+  --pms-glass-bg: var(--background-primary);
+  --pms-glass-header-bg: var(--background-secondary);
+  --pms-glass-card: var(--background-secondary);
+  --pms-glass-card-hover: var(--background-secondary-alt);
+  --pms-glass-blur: 0px;
+  --pms-glass-border: var(--background-modifier-border);
+  --pms-glass-border-subtle: var(--background-modifier-border);
+  --pms-glass-glow: transparent;
+  --pms-glass-shadow: var(--shadow-s, 0 2px 6px rgba(0, 0, 0, 0.08));
+}
+
+.pms-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0;
+  background-color: var(--pms-glass-bg);
+  color: var(--text-normal);
+  font-family: var(--font-ui);
+  user-select: none;
+  container-type: inline-size;
+  container-name: pmsViewport;
+}
+
+/* Header & Controls */
+.pms-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background-color: var(--pms-glass-header-bg);
+  backdrop-filter: blur(var(--pms-glass-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--pms-glass-blur)) saturate(150%);
+  border-bottom: 1px solid var(--pms-glass-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.pms-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pms-search-wrap {
+  flex: 1;
+}
+
+.pms-search-input {
+  width: 100%;
+  border-radius: 20px;
+  background-color: var(--pms-glass-bg);
+  border: 1px solid var(--pms-glass-border-subtle);
+  padding: 6px 14px;
+  font-size: var(--font-ui-small, 0.84rem);
+  color: var(--text-normal);
+  box-sizing: border-box;
+  transition: var(--pms-transition);
+}
+
+.pms-search-input:focus {
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 2px var(--pms-glass-glow);
+  background-color: var(--background-primary);
+}
+
+.pms-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.pms-icon-btn {
+  color: var(--text-muted);
+  border-radius: 50%;
+  padding: 6px;
+  transition: all 0.15s ease;
+}
+
+.pms-icon-btn:hover {
+  color: var(--text-normal);
+  background-color: var(--background-modifier-hover);
+}
+
+.pms-icon-btn.is-update-highlight {
+  color: var(--text-accent);
+  background-color: rgba(var(--interactive-accent-rgb), 0.15);
+  box-shadow: 0 0 6px var(--interactive-accent);
+}
+
+.pms-icon-btn.is-hotreload-active {
+  color: var(--text-warning, #b45309);
+}
+
+/* ==========================================================================
+   Two-Row Control Architecture (Isolated Rows)
+   ========================================================================== */
+
+.pms-control-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+/* Row 1: Scope & Layout Structure */
+.pms-structure-row {
+  border-bottom: 1px dashed rgba(var(--background-modifier-border-focus-rgb, 120, 120, 120), 0.25);
+  padding-bottom: 7px;
+}
+
+/* Row 2: Filtering Criteria */
+.pms-criteria-row {
+  padding-top: 1px;
+}
+
+/* Chips */
+.pms-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 16px;
+  padding: 4px 10px;
+  font-size: 0.73rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.16s ease;
+  user-select: none;
+}
+
+.pms-chip:hover {
+  color: var(--text-normal);
+  background-color: var(--background-modifier-hover);
+  border-color: var(--background-modifier-border-hover);
+}
+
+/* Active Material Accent */
+.pms-chip.is-active {
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent, #ffffff);
+  border-color: var(--interactive-accent);
+  font-weight: 600;
+}
+
+/* Source Filter Active States */
+.pms-chip.is-source-official {
+  background-color: rgba(80, 200, 120, 0.15);
+  color: var(--text-success, #50c878);
+  border-color: rgba(80, 200, 120, 0.4);
+  font-weight: 600;
+}
+
+.pms-chip.is-source-local {
+  background-color: rgba(229, 169, 60, 0.15);
+  color: var(--text-warning, #e5a93c);
+  border-color: rgba(229, 169, 60, 0.4);
+  font-weight: 600;
+}
+
+/* State Filter Inactive Indicator */
+.pms-chip.is-state-disabled {
+  background-color: rgba(150, 150, 150, 0.12);
+  color: var(--text-faint);
+  border-color: var(--background-modifier-border-hover);
+  font-weight: 600;
+}
+
+/* Group Dropdown */
+.pms-group-select {
+  background-color: var(--background-primary);
+  color: var(--text-normal);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 16px;
+  padding: 3px 10px;
+  font-size: 0.73rem;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.16s ease;
+}
+
+.pms-group-select:focus {
+  border-color: var(--interactive-accent);
+}
+
+/* Reset Button */
+.pms-chip.pms-chip-reset {
+  color: var(--text-accent);
+  border-color: var(--interactive-accent);
+  background-color: transparent;
+  font-weight: 600;
+}
+
+.pms-chip.pms-chip-reset:hover {
+  background-color: rgba(var(--interactive-accent-rgb), 0.1);
+}
+
+/* Badge Counters inside Chips */
+.pms-chip-badge {
+  font-size: 0.68rem;
+  background-color: var(--background-secondary-alt);
+  color: var(--text-muted);
+  border-radius: 10px;
+  padding: 0 6px;
+}
+
+.pms-chip.is-active .pms-chip-badge {
+  background-color: var(--background-primary);
+  color: var(--text-normal);
+}
+
+.pms-chip.is-update-chip {
+  border-color: var(--interactive-accent);
+}
+
+/* ==========================================================================
+   Content Body & Cards
+   ========================================================================== */
+
+.pms-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 12px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Quick Statistics Bar */
+.pms-stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 2px 2px 4px;
+}
+
+.pms-stat-pill {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--pms-glass-card);
+  color: var(--text-muted);
+  border: 1px solid var(--pms-glass-border-subtle);
+  transition: var(--pms-transition);
+}
+
+.pms-stat-pill.is-active {
+  color: var(--text-success, #50c878);
+  border-color: rgba(80, 200, 120, 0.35);
+  background: rgba(80, 200, 120, 0.1);
+}
+
+.pms-stat-pill.is-inactive {
+  color: var(--text-faint);
+}
+
+.pms-stat-pill.is-update {
+  color: var(--text-accent);
+  border-color: var(--interactive-accent);
+  background: rgba(var(--interactive-accent-rgb), 0.12);
+}
+
+.pms-section {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.pms-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 1px;
+}
+
+.pms-section-left {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pms-section-title {
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.pms-section-count {
+  font-size: 0.7rem;
+  background-color: var(--background-modifier-border);
+  color: var(--text-muted);
+  border-radius: 9px;
+  padding: 1px 6px;
+  font-weight: 600;
+}
+
+.pms-section-count.is-accent {
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.pms-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pms-mini-btn {
+  font-size: 0.7rem;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.pms-mini-btn:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.pms-section-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pms-item {
+  background-color: var(--pms-glass-card);
+  border: 1px solid var(--pms-glass-border-subtle);
+  backdrop-filter: blur(var(--pms-glass-blur));
+  -webkit-backdrop-filter: blur(var(--pms-glass-blur));
+  border-radius: 12px;
+  padding: 9px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: var(--pms-transition);
+}
+
+.pms-item:hover {
+  background-color: var(--pms-glass-card-hover);
+  border-color: var(--pms-glass-border);
+  box-shadow: 0 4px 16px var(--pms-glass-glow);
+  transform: translateY(-1px);
+}
+
+.pms-item.is-disabled {
+  opacity: 0.65;
+}
+
+.pms-line1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pms-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+  flex: 1;
+}
+
+.pms-name {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text-normal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pms-tag {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-accent);
+  border: 1px solid var(--interactive-accent);
+  padding: 0 4px;
+  border-radius: 4px;
+}
+
+/* Anchored Right-Side Cluster: Uniform Badge + Toggle Alignment */
+.pms-line1-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pms-source-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  text-align: center;
+}
+
+.pms-source-badge.is-official {
+  color: var(--text-success, #50c878);
+  background-color: rgba(80, 200, 120, 0.12);
+  border: 1px solid rgba(80, 200, 120, 0.3);
+}
+
+.pms-source-badge.is-manual {
+  color: var(--text-warning, #e5a93c);
+  background-color: rgba(229, 169, 60, 0.12);
+  border: 1px solid rgba(229, 169, 60, 0.3);
+}
+
+.pms-source-badge.is-core {
+  color: var(--text-accent);
+  background-color: rgba(var(--interactive-accent-rgb), 0.12);
+  border: 1px solid rgba(var(--interactive-accent-rgb), 0.3);
+}
+
+/* Material Toggle Switch */
+.pms-toggle {
+  flex-shrink: 0;
+  cursor: pointer;
+  position: relative;
+  width: 32px;
+  height: 18px;
+  background-color: var(--background-modifier-border);
+  border-radius: 12px;
+  transition: background-color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.pms-toggle::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: var(--text-on-accent, #fff);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+}
+
+.pms-toggle.is-enabled {
+  background-color: var(--interactive-accent);
+}
+
+.pms-toggle.is-enabled::after {
+  transform: translateX(14px);
+}
+
+.pms-toggle.is-locked {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+/* Metadata */
+.pms-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.pms-id {
+  font-family: var(--font-monospace);
+  background: var(--background-primary);
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.pms-version {
+  color: var(--text-faint);
+  font-family: var(--font-monospace);
+}
+
+.pms-author {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pms-desc {
+  font-size: 0.76rem;
+  line-height: 1.35;
+  color: var(--text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pms-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  border-top: 1px solid var(--pms-glass-border-subtle);
+  padding-top: 5px;
+}
+
+.pms-row-actions .pms-icon-btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  border-radius: 6px;
+  transition: var(--pms-transition);
+}
+
+.pms-row-actions .pms-icon-btn:hover {
+  background-color: rgba(var(--interactive-accent-rgb), 0.12);
+  color: var(--text-normal);
+  transform: scale(1.05);
+}
+
+.pms-icon-btn.is-pinned {
+  color: var(--interactive-accent);
+}
+
+/* Updates Section */
+.pms-updates-section {
+  background-color: rgba(var(--interactive-accent-rgb), 0.05);
+  border: 1px solid rgba(var(--interactive-accent-rgb), 0.2);
+  border-radius: 10px;
+  padding: 6px 8px;
+}
+
+.pms-version-diff {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-accent);
+  background: var(--background-primary);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+/* Modals */
+.pms-modal-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 10px;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+}
+
+.pms-modal-input,
+.pms-modal-textarea {
+  width: 100%;
+  border-radius: 8px;
+  padding: 7px 10px;
+  background-color: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  font-size: 0.85rem;
+  box-sizing: border-box;
+}
+
+.pms-modal-textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+
+.pms-modal-badge-desc {
+  font-size: 0.78rem;
+  padding: 6px 10px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.pms-modal-badge-desc.is-local-notice {
+  background-color: rgba(229, 169, 60, 0.12);
+  border: 1px solid rgba(229, 169, 60, 0.3);
+  color: var(--text-warning);
+}
+
+.pms-modal-badge-desc.is-official-notice {
+  background-color: rgba(80, 200, 120, 0.12);
+  border: 1px solid rgba(80, 200, 120, 0.3);
+  color: var(--text-success);
+}
+
+.pms-modal-version-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+  margin-bottom: 12px;
+}
+
+.pms-chip-badge.is-accent {
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent, #fff);
+  font-weight: 600;
+}
+
+.pms-modal-filter-row {
+  margin: 6px 0;
+}
+
+.pms-check-list {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background-color: var(--background-secondary);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pms-check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  font-size: 0.84rem;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.pms-check-row:hover {
+  background-color: var(--background-modifier-hover);
+}
+
+/* ==========================================================================
+   Frosted Glass Modals & Dialogs
+   ========================================================================== */
+
+.modal.pms-modal-glass,
+.pms-edit-modal-host,
+.pms-group-modal-host,
+.pms-update-modal,
+.pms-confirm-modal {
+  background: var(--pms-glass-header-bg) !important;
+  backdrop-filter: blur(var(--pms-glass-blur)) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(var(--pms-glass-blur)) saturate(160%) !important;
+  border: 1px solid var(--pms-glass-border) !important;
+  box-shadow: var(--pms-glass-shadow) !important;
+  border-radius: 16px !important;
+}
+
+.modal.pms-modal-glass .modal-content {
+  padding: 6px 4px;
+}
+
+/* ==========================================================================
+   Responsive Container Queries
+   ========================================================================== */
+
+@container pmsViewport (max-width: 330px) {
+  .pms-header {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+  .pms-line1 {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .pms-line1-right {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .pms-meta {
+    font-size: 0.66rem;
+  }
+  .pms-author {
+    max-width: 100px;
+  }
+  .pms-row-actions {
+    justify-content: flex-end;
+  }
+}
+

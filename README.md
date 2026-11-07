@@ -1,4 +1,8 @@
-# Obsidian Sample Plugin
+﻿# Obsidian Sample Plugin
+
+> [!NOTE]
+> **Live Plug-and-Play Runtime Available**: The \untime/\ directory contains the production-tested JavaScript bundle (\main.js\, \manifest.json\, and \styles.css\) running directly in the live Obsidian vault. While the TypeScript codebase (\src/\) is undergoing reverse-engineering for official Obsidian community plugin standards, the files in \untime/\ can be copied directly into your vault's \.obsidian/plugins/plugin-manager-sidebar/\ for immediate plug-and-play use.
+
 
 This is a sample plugin for Obsidian (https://obsidian.md).
 
@@ -90,3 +94,4 @@ If you have multiple URLs, you can also do:
 ## API Documentation
 
 See https://docs.obsidian.md
+
