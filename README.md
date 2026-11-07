@@ -1,97 +1,69 @@
-﻿# Obsidian Sample Plugin
+# Plugin Manager Sidebar
 
 > [!NOTE]
-> **Live Plug-and-Play Runtime Available**: The \untime/\ directory contains the production-tested JavaScript bundle (\main.js\, \manifest.json\, and \styles.css\) running directly in the live Obsidian vault. While the TypeScript codebase (\src/\) is undergoing reverse-engineering for official Obsidian community plugin standards, the files in \untime/\ can be copied directly into your vault's \.obsidian/plugins/plugin-manager-sidebar/\ for immediate plug-and-play use.
+> **Live Plug-and-Play Runtime Available:** The `runtime/` directory contains the production-tested JavaScript bundle (`main.js`, `manifest.json`, `styles.css`) that runs in the live Obsidian vault. Copy those three files into `<Vault>/.obsidian/plugins/plugin-manager-sidebar/` for immediate use. The TypeScript source in `src/` is a full behavioral port of that bundle.
 
+A permanent sidebar for every installed and built-in plugin: search, enable, disable, pin, group, update, rename, reveal, and uninstall without digging through settings.
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+## Documentation
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+| File | What it answers |
+| --- | --- |
+| [`docs/PRODUCT.md`](docs/PRODUCT.md) | What the plugin must do, feature by feature, with code anchors. |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Mermaid system map, settings shape, filter pipeline, host bridges, verification commands, extension recipes. |
+| [`docs/DECISIONS_AND_TRAPS.md`](docs/DECISIONS_AND_TRAPS.md) | Why each non-obvious mechanism exists and what must never be changed. |
+| [`docs/VISUAL_GUIDE.html`](docs/VISUAL_GUIDE.html) | Self-contained browser dashboard of intent, architecture, decisions and landmines. |
+| [`AGENTS.md`](AGENTS.md) | Repository-specific build commands, layout and traps. |
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
+## Source layout
 
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open modal (simple)" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and outputs a Notice on click.
-- Registers a global interval which logs 'setInterval' to the console.
+- `src/types.ts` — `PluginManagerSettings`, `ManagedPlugin`, `PluginGroup`, `PluginUpdateInfo`
+- `src/utils/settings.ts` — `DEFAULT_SETTINGS`, `sanitizeSettings` (v7 shape, enum and id validation, prototype-key guard)
+- `src/utils/format.ts` — view type, registry URLs, sorters, `compareSemver`, `sanitizePluginId`, `errMsg`, `sleep`
+- `src/utils/obsidian-internals.ts` — optional types for `app.plugins`, `app.internalPlugins`, `app.setting`, `app.commands`
+- `src/views/plugin-manager-view.ts` — `PluginManagerView` (two-row controls, stats, updates, pinned, status/group sections, rows, menus)
+- `src/modals/group-modal.ts` — `GroupModal` (name, search, category chips, checkbox list, delete)
+- `src/modals/manifest-edit-modal.ts` — `ManifestEditModal` (local manifest edit vs official overlay)
+- `src/modals/confirm-modal.ts` — `ConfirmModal`
+- `src/modals/app-update-modal.ts` — `AppUpdateModal`
+- `src/settings-tab.ts` — `PluginManagerSettingTab`
+- `src/main.ts` — plugin entry, host adapters, toggles, groups, updates, uninstall, settings shortcuts
+- `src/async.ts` — `voidAsync` for async DOM listeners
 
-## First time developing plugins?
+## Parity checklist
 
-Quick starting guide for new plugin devs:
+- [x] Entry, ribbon, command, settings tab, glassmorphism body class, unload cleanup
+- [x] Community/core/all inventory from live manifests with enabled state
+- [x] Scope / view / group structural row independent of filters
+- [x] Debounced search over name, id, description, author
+- [x] Source, state, pinned, updates filters plus sort and reset chip
+- [x] Status sections (Enabled/Disabled) and group sections (plus Other Plugins)
+- [x] Stats bar and updates section with version diffs
+- [x] Verified enable/disable for community and core plugins with self-lock
+- [x] Pin/unpin with dedicated Pinned section and no duplication
+- [x] Group create/edit/delete, preserved missing members, bulk enable/disable with per-plugin error isolation
+- [x] Update check, update single, update all via Obsidian's install API
+- [x] Obsidian app update check with desktop release feed and GitHub fallback
+- [x] Metadata editing: local manifest write, official/core overlay, reset defaults
+- [x] `.hotreload` create/touch with cache and error reporting
+- [x] Reveal in explorer with Electron and host fallbacks
+- [x] Safe uninstall with confirmation and pin/group cleanup
+- [x] Plugin settings shortcut and community browser (Restricted Mode aware)
+- [x] Console logging for errors, notices for user-facing failures
+- [x] Data compatibility: v7 `data.json` shape
+- [x] `styles.css` — live styles copied verbatim
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `src/main.ts` to `main.js`.
-- Make changes to `src/main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+## Develop
 
-## Releasing new releases
-
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
-
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
-
-## Adding your plugin to the community plugin list
-
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
-
-## How to use
-
-- Clone this repo.
-- Make sure your NodeJS is at least v18 (`node --version`).
-- `npm i` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
-
-## Manually installing the plugin
-
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
-
-## Improve code quality with eslint
-
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code.
-- This project already has eslint preconfigured, you can invoke a check by running`npm run lint`
-- Together with a custom eslint [plugin](https://github.com/obsidianmd/eslint-plugin) for Obsidan specific code guidelines.
-- A GitHub action is preconfigured to automatically lint every commit on all branches.
-
-## Funding URL
-
-You can include funding URLs where people who use your plugin can financially support it.
-
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
-
-```json
-{
-	"fundingUrl": "https://buymeacoffee.com"
-}
+```bash
+npm install
+npm run dev     # esbuild watch
+npm run build   # tsc --noEmit + production bundle -> main.js
+npm run lint
 ```
 
-If you have multiple URLs, you can also do:
+Manual install: copy `main.js`, `manifest.json`, `styles.css` to `<Vault>/.obsidian/plugins/plugin-manager-sidebar/`.
 
-```json
-{
-	"fundingUrl": {
-		"Buy Me a Coffee": "https://buymeacoffee.com",
-		"GitHub Sponsor": "https://github.com/sponsors",
-		"Patreon": "https://www.patreon.com/"
-	}
-}
-```
+## License
 
-## API Documentation
-
-See https://docs.obsidian.md
-
+Code: PolyForm Noncommercial 1.0.0 (see `LICENSE`). Docs: CC BY-NC 4.0. Copyright © Mostakim2005. Source-available: free non-commercial use with credit, no commercial use.
