@@ -1,83 +1,109 @@
-import type { PluginActivity, PluginManagerDisplayMode, PluginManagerSettings, PluginUsage } from '../types';
+import type {
+	PluginGroup,
+	PluginManagerSettings,
+	PluginOverride,
+} from "../types";
+import { newGroupId, sanitizePluginId, unique } from "./format";
+
+export const SETTINGS_VERSION = 7;
 
 export const DEFAULT_SETTINGS: PluginManagerSettings = {
-  pinned: [],
-  pinnedOrder: [],
-  enabledOrder: [],
-  disabledOrder: [],
-  customNames: {},
-  customDescs: {},
-  displayMode: 'simple',
-  usage: {},
-  activity: [],
+	version: SETTINGS_VERSION,
+	pinned: [],
+	groups: [],
+	view: "status",
+	scope: "community",
+	sourceFilter: "all",
+	stateFilter: "all",
+	pinnedOnly: false,
+	updatesOnly: false,
+	selectedGroup: "all",
+	sortBy: "status",
+	glassmorphism: true,
+	autoCheckUpdates: true,
+	overrides: {},
 };
 
+const PLUGIN_ID_RE = /^[a-zA-Z0-9_-]+$/;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
+	return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function stringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return [...new Set(value.filter((item): item is string => typeof item === 'string'))];
+function groupList(value: unknown): PluginGroup[] {
+	if (!Array.isArray(value)) return [];
+	const groups: PluginGroup[] = [];
+	const seen = new Set<string>();
+
+	for (const raw of value) {
+		if (!isRecord(raw)) continue;
+		const name = typeof raw.name === "string" ? raw.name.trim() : "";
+		if (!name) continue;
+		let id = typeof raw.id === "string" && raw.id ? raw.id : newGroupId();
+		while (seen.has(id)) id = newGroupId();
+		seen.add(id);
+		groups.push({
+			id,
+			name,
+			plugins: Array.isArray(raw.plugins)
+				? unique(raw.plugins.filter((item): item is string => typeof item === "string" && PLUGIN_ID_RE.test(item)))
+				: [],
+		});
+	}
+	return groups;
 }
 
-function stringMap(value: unknown): Record<string, string> {
-  if (!isRecord(value)) return {};
-  const result: Record<string, string> = {};
-  for (const [key, item] of Object.entries(value)) {
-    if (typeof item === 'string') result[key] = item;
-  }
-  return result;
+function overrideList(value: unknown): Record<string, PluginOverride> {
+	if (!isRecord(value)) return {};
+	const overrides: Record<string, PluginOverride> = {};
+	for (const [key, raw] of Object.entries(value)) {
+		if (key === "__proto__" || key === "constructor" || key === "prototype") continue;
+		const id = sanitizePluginId(key);
+		if (!id || !isRecord(raw)) continue;
+		overrides[id] = {
+			name: typeof raw.name === "string" ? raw.name.slice(0, 100) : undefined,
+			author: typeof raw.author === "string" ? raw.author.slice(0, 100) : undefined,
+			description:
+				typeof raw.description === "string" ? raw.description.slice(0, 500) : undefined,
+		};
+	}
+	return overrides;
 }
 
-function displayMode(value: unknown): PluginManagerDisplayMode {
-  return value === 'compact' || value === 'advanced' ? value : 'simple';
-}
+/** Coerces any stored value into the live v7 settings shape. */
+export function sanitizeSettings(raw: unknown): PluginManagerSettings {
+	const out: PluginManagerSettings = { ...DEFAULT_SETTINGS, overrides: {} };
+	if (!isRecord(raw)) return out;
 
-function usageMap(value: unknown): Record<string, PluginUsage> {
-  if (!isRecord(value)) return {};
-  const result: Record<string, PluginUsage> = {};
-  for (const [key, item] of Object.entries(value)) {
-    if (!isRecord(item)) continue;
-    const count = typeof item.count === 'number' && Number.isFinite(item.count) ? Math.max(0, Math.floor(item.count)) : 0;
-    const lastUsedAt = typeof item.lastUsedAt === 'number' && Number.isFinite(item.lastUsedAt) ? Math.max(0, item.lastUsedAt) : 0;
-    result[key] = { count, lastUsedAt };
-  }
-  return result;
-}
+	if (Array.isArray(raw.pinned)) {
+		out.pinned = unique(
+			raw.pinned.filter(
+				(item): item is string => typeof item === "string" && PLUGIN_ID_RE.test(item),
+			),
+		);
+	}
+	out.groups = groupList(raw.groups);
+	out.overrides = overrideList(raw.overrides);
 
-function activityList(value: unknown): PluginActivity[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .filter(isRecord)
-    .map((item) => ({
-      pluginId: typeof item.pluginId === 'string' ? item.pluginId : '',
-      action: typeof item.action === 'string' ? item.action : '',
-      timestamp: typeof item.timestamp === 'number' && Number.isFinite(item.timestamp) ? Math.max(0, item.timestamp) : 0,
-    }))
-    .filter((item) => item.pluginId && item.action && item.timestamp > 0)
-    .sort((a, b) => b.timestamp - a.timestamp)
-    .slice(0, 50);
-}
+	if (raw.view === "group") out.view = "group";
+	if (raw.scope === "community" || raw.scope === "core" || raw.scope === "all") {
+		out.scope = raw.scope;
+	}
+	if (raw.sourceFilter === "all" || raw.sourceFilter === "official" || raw.sourceFilter === "local") {
+		out.sourceFilter = raw.sourceFilter;
+	}
+	if (raw.stateFilter === "all" || raw.stateFilter === "enabled" || raw.stateFilter === "disabled") {
+		out.stateFilter = raw.stateFilter;
+	}
+	if (typeof raw.pinnedOnly === "boolean") out.pinnedOnly = raw.pinnedOnly;
+	if (typeof raw.updatesOnly === "boolean") out.updatesOnly = raw.updatesOnly;
+	if (typeof raw.selectedGroup === "string") out.selectedGroup = raw.selectedGroup;
+	if (raw.sortBy === "status" || raw.sortBy === "alphabetical") {
+		out.sortBy = raw.sortBy;
+	}
+	if (typeof raw.glassmorphism === "boolean") out.glassmorphism = raw.glassmorphism;
+	if (typeof raw.autoCheckUpdates === "boolean") out.autoCheckUpdates = raw.autoCheckUpdates;
 
-export function normalizeSettings(data: unknown): PluginManagerSettings {
-  if (!isRecord(data)) return { ...DEFAULT_SETTINGS };
-
-  const legacyOrder = stringArray(data.order);
-  const pinned = stringArray(data.pinned);
-  const pinnedOrder = stringArray(data.pinnedOrder);
-  const enabledOrder = stringArray(data.enabledOrder);
-  const disabledOrder = stringArray(data.disabledOrder);
-
-  return {
-    pinned,
-    pinnedOrder: pinnedOrder.length > 0 ? pinnedOrder : pinned,
-    enabledOrder: enabledOrder.length > 0 ? enabledOrder : legacyOrder,
-    disabledOrder,
-    customNames: stringMap(data.customNames),
-    customDescs: stringMap(data.customDescs),
-    displayMode: displayMode(data.displayMode),
-    usage: usageMap(data.usage),
-    activity: activityList(data.activity),
-  };
+	out.version = SETTINGS_VERSION;
+	return out;
 }
