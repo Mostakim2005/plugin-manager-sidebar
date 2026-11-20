@@ -104,7 +104,7 @@ body:not(.pms-glassmorphic) {
 
 .pms-icon-btn.is-update-highlight {
   color: var(--text-accent);
-  background-color: rgba(var(--interactive-accent-rgb), 0.15);
+  background-color: rgba(var(--interactive-accent-rgb, 0, 168, 132), 0.15);
   box-shadow: 0 0 6px var(--interactive-accent);
 }
 
@@ -217,7 +217,7 @@ body:not(.pms-glassmorphic) {
 }
 
 .pms-chip.pms-chip-reset:hover {
-  background-color: rgba(var(--interactive-accent-rgb), 0.1);
+  background-color: rgba(var(--interactive-accent-rgb, 0, 168, 132), 0.1);
 }
 
 /* Badge Counters inside Chips */
@@ -284,7 +284,7 @@ body:not(.pms-glassmorphic) {
 .pms-stat-pill.is-update {
   color: var(--text-accent);
   border-color: var(--interactive-accent);
-  background: rgba(var(--interactive-accent-rgb), 0.12);
+  background: rgba(var(--interactive-accent-rgb, 0, 168, 132), 0.12);
 }
 
 .pms-section {
@@ -448,8 +448,8 @@ body:not(.pms-glassmorphic) {
 
 .pms-source-badge.is-core {
   color: var(--text-accent);
-  background-color: rgba(var(--interactive-accent-rgb), 0.12);
-  border: 1px solid rgba(var(--interactive-accent-rgb), 0.3);
+  background-color: rgba(var(--interactive-accent-rgb, 0, 168, 132), 0.12);
+  border: 1px solid rgba(var(--interactive-accent-rgb, 0, 168, 132), 0.3);
 }
 
 /* Material Toggle Switch */
@@ -552,7 +552,7 @@ body:not(.pms-glassmorphic) {
 }
 
 .pms-row-actions .pms-icon-btn:hover {
-  background-color: rgba(var(--interactive-accent-rgb), 0.12);
+  background-color: rgba(var(--interactive-accent-rgb, 0, 168, 132), 0.12);
   color: var(--text-normal);
   transform: scale(1.05);
 }
@@ -563,8 +563,8 @@ body:not(.pms-glassmorphic) {
 
 /* Updates Section */
 .pms-updates-section {
-  background-color: rgba(var(--interactive-accent-rgb), 0.05);
-  border: 1px solid rgba(var(--interactive-accent-rgb), 0.2);
+  background-color: rgba(var(--interactive-accent-rgb, 0, 168, 132), 0.05);
+  border: 1px solid rgba(var(--interactive-accent-rgb, 0, 168, 132), 0.2);
   border-radius: 10px;
   padding: 6px 8px;
 }
@@ -716,3 +716,26 @@ body:not(.pms-glassmorphic) {
   }
 }
 
+
+.pms-banner {
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.76rem;
+  color: var(--text-warning);
+  background: color-mix(in srgb, var(--text-warning) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text-warning) 35%, transparent);
+}
+
+.pms-empty,
+.pms-empty-text {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  padding: 20px 10px;
+}
+
+.pms-modal-hint {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  margin: 4px 0 6px;
+}

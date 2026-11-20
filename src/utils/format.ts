@@ -47,13 +47,22 @@ export function newGroupId(): string {
 /** Compares two loose versions such as "1.10.2" and "v1.9". */
 export function compareSemver(a: string, b: string): number {
 	if (!a || !b) return 0;
-	const pa = a.replace(/^[^\d]*/, "").split(".").map(Number);
-	const pb = b.replace(/^[^\d]*/, "").split(".").map(Number);
+	const parse = (v: string) =>
+		v
+			.replace(/^[^\d]*/, "")
+			.split("-")[0]!
+			.split(".")
+			.map((n) => Number.parseInt(n, 10) || 0);
+	const pa = parse(a);
+	const pb = parse(b);
 	for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
 		const na = pa[i] ?? 0;
 		const nb = pb[i] ?? 0;
 		if (na > nb) return 1;
 		if (na < nb) return -1;
 	}
+	const aPre = a.includes("-");
+	const bPre = b.includes("-");
+	if (aPre !== bPre) return aPre ? -1 : 1;
 	return 0;
 }

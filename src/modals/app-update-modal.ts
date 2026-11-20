@@ -35,7 +35,7 @@ export class AppUpdateModal extends Modal {
 
 		cancel.addEventListener("click", () => this.close());
 		download.addEventListener("click", () => {
-			window.open(this.downloadUrl);
+			window.open(this.downloadUrl, "_blank", "noopener,noreferrer");
 			this.close();
 		});
 	}

@@ -83,11 +83,13 @@ export default class PluginManagerSidebar extends Plugin {
 			callback: () => this.safe(() => this.activateView(), "open sidebar"),
 		});
 
-		await this.fetchOfficialRegistry();
 		await this.scanHotReloadFiles();
-		if (this.settings.autoCheckUpdates) {
-			void this.checkOfficialUpdates();
-		}
+		void this.fetchOfficialRegistry().then(() => {
+			this.refreshViews();
+			if (this.settings.autoCheckUpdates) {
+				void this.checkOfficialUpdates();
+			}
+		});
 
 	}
 
@@ -512,17 +514,23 @@ export default class PluginManagerSidebar extends Plugin {
 
 		await this.exclusive("update all plugins", async () => {
 			let count = 0;
+			let failed = 0;
 			for (const item of updates) {
 				try {
 					await pm.installPlugin?.(item.repo ?? "", item.newVersion, item.manifest);
 					if (pm.updates) delete pm.updates[item.id];
 					count++;
 				} catch (error) {
+					failed++;
 					logError(`failed updating ${item.id}`, error);
 				}
 				await sleep(40);
 			}
-			new Notice(`Updated ${count} plugins.`);
+			new Notice(
+				failed > 0
+					? `Updated ${count} plugins (${failed} failed; see console).`
+					: `Updated ${count} plugins.`,
+			);
 		});
 	}
 
@@ -656,8 +664,11 @@ export default class PluginManagerSidebar extends Plugin {
 					}
 					await sleep(60);
 				}
+				const failed = todo.length - ok;
 				new Notice(
-					`${want ? "Enabled" : "Disabled"} ${ok} plugins in "${group.name}".`,
+					failed > 0
+						? `${want ? "Enabled" : "Disabled"} ${ok} plugins in "${group.name}" (${failed} failed; see console).`
+						: `${want ? "Enabled" : "Disabled"} ${ok} plugins in "${group.name}".`,
 				);
 			},
 		);

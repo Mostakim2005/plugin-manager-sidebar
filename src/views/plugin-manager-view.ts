@@ -75,7 +75,7 @@ export class PluginManagerView extends ItemView {
 
 	render(): void {
 		const root = this.contentEl;
-		const scrollTop = root.scrollTop;
+		const scrollTop = this.bodyEl?.scrollTop ?? 0;
 		root.empty();
 		root.addClass("pms-view");
 
@@ -298,7 +298,7 @@ export class PluginManagerView extends ItemView {
 
 		this.bodyEl = root.createDiv("pms-body");
 		this.renderList();
-		root.scrollTop = scrollTop;
+		this.bodyEl.scrollTop = scrollTop;
 	}
 
 	iconButton(
@@ -321,8 +321,7 @@ export class PluginManagerView extends ItemView {
 
 	renderList(): void {
 		if (!this.bodyEl) return;
-		const scroller = this.contentEl;
-		const scrollTop = scroller.scrollTop;
+		const scrollTop = this.bodyEl.scrollTop;
 		this.bodyEl.empty();
 
 		try {
@@ -334,7 +333,7 @@ export class PluginManagerView extends ItemView {
 				cls: "pms-empty-text",
 			});
 		}
-		scroller.scrollTop = scrollTop;
+		this.bodyEl.scrollTop = scrollTop;
 	}
 
 	private buildList(): void {
@@ -380,6 +379,8 @@ export class PluginManagerView extends ItemView {
 		if (
 			settings.scope !== "core" &&
 			updateCount > 0 &&
+			!this.query.trim() &&
+			!settings.pinnedOnly &&
 			(!settings.stateFilter ||
 				settings.stateFilter === "all" ||
 				settings.stateFilter === "enabled") &&
@@ -509,7 +510,7 @@ export class PluginManagerView extends ItemView {
 			}
 		}
 
-		if (shown === 0 && updateCount === 0) {
+		if (shown === 0) {
 			body.createDiv({ text: "No matching plugins found.", cls: "pms-empty" });
 		}
 	}
