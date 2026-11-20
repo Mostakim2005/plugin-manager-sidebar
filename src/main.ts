@@ -213,7 +213,7 @@ export default class PluginManagerSidebar extends Plugin {
 								? override.description
 								: (meta.description ?? ""),
 						version: "",
-						author: "Obsidian",
+						author: override.author !== undefined ? override.author : "Obsidian",
 						enabled: Boolean(corePlugin.enabled),
 						isCore: true,
 						isLocal: false,

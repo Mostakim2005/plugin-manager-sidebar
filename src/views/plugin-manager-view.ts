@@ -35,6 +35,7 @@ export class PluginManagerView extends ItemView {
 	private query = "";
 	private bodyEl: HTMLElement | null = null;
 	private searchTimeout: number | null = null;
+	private lastRenderSignature = "";
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -62,7 +63,11 @@ export class PluginManagerView extends ItemView {
 				if (leaf === this.leaf) this.renderList();
 			}),
 		);
-		this.registerDomEvent(window, "focus", () => this.renderList());
+		this.registerDomEvent(window, "focus", () => {
+			if (this.computeSignature() !== this.lastRenderSignature) {
+				this.renderList();
+			}
+		});
 	}
 
 	async onClose(): Promise<void> {
@@ -341,6 +346,7 @@ export class PluginManagerView extends ItemView {
 		if (!body) return;
 		const settings = this.plugin.settings;
 		const all = this.plugin.listPlugins(settings.scope);
+		this.lastRenderSignature = this.computeSignature(all);
 
 		if (settings.scope !== "core" && !this.plugin.communityEnabled()) {
 			body.createDiv({
@@ -513,6 +519,12 @@ export class PluginManagerView extends ItemView {
 		if (shown === 0) {
 			body.createDiv({ text: "No matching plugins found.", cls: "pms-empty" });
 		}
+	}
+
+	private computeSignature(list?: ManagedPlugin[]): string {
+		const items = list ?? this.plugin.listPlugins(this.plugin.settings.scope);
+		const updateCount = this.plugin.getAvailableUpdatesCount();
+		return `${updateCount}|` + items.map((p) => `${p.id}:${p.enabled ? 1 : 0}:${p.version}:${p.name}`).join(";");
 	}
 
 	private addSection(
