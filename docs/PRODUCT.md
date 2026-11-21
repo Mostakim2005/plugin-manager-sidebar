@@ -125,6 +125,14 @@
   * `src/main.ts` -> `safe`, `exclusive`
   * `src/views/plugin-manager-view.ts` -> `renderList`, `iconButton`
 
+### [FEATURE: Sidebar-Toggle-And-Ribbon-Sync] | Aliases: toggle sidebar, ribbon active state, leaf deduplication, SidebarController
+> **1-Line Summary:** Toggles the sidebar leaf open or collapsed from ribbon or command, reflects visibility via active ribbon styling, and cleans up duplicate leaves.
+* **User Intention (Non-Negotiable):** Clicking the ribbon button when the sidebar is visible must collapse it rather than reopening or doing nothing; clicking when collapsed must expand and focus it. Duplicate leaves of the sidebar view must never accumulate.
+* **Visual / UI Behavior:** Ribbon icon with tooltip "Toggle plugin manager", styled with `.is-active` and `aria-pressed="true"` whenever the view is visible; command palette includes "Toggle sidebar" alongside "Open sidebar".
+* **Code Anchors (Grep Targets):**
+  * `src/main.ts` -> `toggleView`, `activateView`, `SidebarController`
+  * `src/utils/workspace.ts` -> `SidebarController.toggle`, `SidebarController.syncRibbonState`
+
 ## 3. Explicit Non-Goals
 * No custom plugin installer, registry mirror, or download cache.
 * No editing of official plugin source or manifests.

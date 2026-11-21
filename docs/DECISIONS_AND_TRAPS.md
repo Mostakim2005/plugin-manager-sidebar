@@ -131,6 +131,17 @@ flowchart LR
   * `src/main.ts` -> `safe`
   * `src/views/plugin-manager-view.ts` -> `renderList`, `iconButton`
 
+### [DECISION: Dedicated-Sidebar-Controller-With-Leaf-Deduplication] | Aliases: SidebarController, ribbon toggle, duplicate leaves, revealLeaf
+> **1-Line Summary:** Sidebar workspace mechanics (discovery, expansion/collapse, ribbon styling, and duplicate leaf detachment) live in a dedicated controller.
+* **Decision Maker:** `[DECIDED BY: AGENT]`
+* **Original User Intention:** Provide seamless toggle support for ribbon button and command palette, sync ribbon active state with layout events, and prevent duplicate sidebar leaves from piling up.
+* **Options Considered:**
+  * **Option A (Rejected):** Keep an inline `activateView()` in `main.ts` that only adds or focuses leaves, leaving ribbon icon passive without toggle or active state and allowing duplicate view leaves to persist.
+  * **Option B (Chosen):** Extract `SidebarController` (`src/utils/workspace.ts`) with `toggle()`, `activate()`, `syncRibbonState()`, and `getPrimaryLeaf()` deduplication (detaching any excess leaves of the same view type).
+* **Code Anchors (Grep Targets):**
+  * `src/utils/workspace.ts` -> `SidebarController`, `toggle`, `activate`, `getPrimaryLeaf`, `syncRibbonState`
+  * `src/main.ts` -> `toggleView`, `activateView`, `sidebar`
+
 ## 2. Landmines & Hard-Won Traps
 
 ### [TRAP: Host-Internals-Are-Optional] | Aliases: app.plugins undefined, restricted mode, mobile

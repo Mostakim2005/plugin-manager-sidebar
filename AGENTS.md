@@ -23,6 +23,7 @@
   * `modals/app-update-modal.ts` — `AppUpdateModal` for Obsidian releases.
   * `settings-tab.ts` — `PluginManagerSettingTab`.
   * `utils/settings.ts` — `DEFAULT_SETTINGS`, `sanitizeSettings`, v7 migration rules.
+  * `utils/workspace.ts` — `SidebarController`: leaf discovery, toggling, deduplication, and ribbon state sync.
   * `utils/format.ts` — constants, sorters, semver, id sanitization, error helpers.
   * `utils/obsidian-internals.ts` — optional types for `app.plugins`, `app.internalPlugins`, `app.setting`, `app.commands`.
   * `types.ts` — settings and inventory contracts.

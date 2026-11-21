@@ -3,7 +3,6 @@ import {
 	Plugin,
 	apiVersion,
 	requestUrl,
-	type WorkspaceLeaf,
 } from "obsidian";
 import { ConfirmModal } from "./modals/confirm-modal";
 import { AppUpdateModal } from "./modals/app-update-modal";
@@ -38,6 +37,7 @@ import type {
 	PluginManagerApi,
 } from "./utils/obsidian-internals";
 import { sanitizeSettings } from "./utils/settings";
+import { SidebarController } from "./utils/workspace";
 import { PluginManagerView } from "./views/plugin-manager-view";
 
 interface WindowWithProcess {
@@ -62,6 +62,7 @@ export default class PluginManagerSidebar extends Plugin {
 	private officialIds = new Set<string>();
 	registryLoaded = false;
 	private hotReloadCache = new Set<string>();
+	private readonly sidebar = new SidebarController(this.app);
 
 	async onload(): Promise<void> {
 		try {
@@ -74,13 +75,28 @@ export default class PluginManagerSidebar extends Plugin {
 		this.addSettingTab(new PluginManagerSettingTab(this.app, this));
 
 		this.registerView(VIEW_TYPE, (leaf) => new PluginManagerView(leaf, this));
-		this.addRibbonIcon("blocks", "Open Plugin Manager", () => {
-			this.safe(() => this.activateView(), "open sidebar");
+		const ribbonEl = this.addRibbonIcon("blocks", "Toggle plugin manager", () => {
+			this.safe(() => this.toggleView(), "toggle sidebar");
+		});
+		this.sidebar.attachRibbon(ribbonEl);
+		this.registerEvent(
+			this.app.workspace.on("layout-change", () => this.sidebar.syncRibbonState()),
+		);
+		this.registerEvent(
+			this.app.workspace.on("active-leaf-change", () => this.sidebar.syncRibbonState()),
+		);
+		this.app.workspace.onLayoutReady(() => {
+			this.sidebar.syncRibbonState();
 		});
 		this.addCommand({
 			id: "open-plugin-manager",
 			name: "Open sidebar",
 			callback: () => this.safe(() => this.activateView(), "open sidebar"),
+		});
+		this.addCommand({
+			id: "toggle-plugin-manager",
+			name: "Toggle sidebar",
+			callback: () => this.safe(() => this.toggleView(), "toggle sidebar"),
 		});
 
 		await this.scanHotReloadFiles();
@@ -536,19 +552,12 @@ export default class PluginManagerSidebar extends Plugin {
 
 	/* ---------- view ---------- */
 
-	async activateView(): Promise<void> {
-		const { workspace } = this.app;
-		const existing: WorkspaceLeaf | null =
-			workspace.getLeavesOfType(VIEW_TYPE)[0] ?? null;
-		let leaf = existing;
+	toggleView(): Promise<void> {
+		return this.sidebar.toggle();
+	}
 
-		if (!leaf) {
-			leaf = workspace.getRightLeaf(false);
-			if (!leaf) return;
-			await leaf.setViewState({ type: VIEW_TYPE, active: true });
-		}
-
-		workspace.setActiveLeaf(leaf, { focus: true });
+	activateView(): Promise<void> {
+		return this.sidebar.activate();
 	}
 
 	async exclusive(label: string, fn: () => Promise<void>): Promise<void> {

@@ -15,6 +15,7 @@ flowchart TB
 
     subgraph CORE["Plugin Core"]
         MAIN["PluginManagerSidebar<br/>actions · safe · exclusive"]
+        SIDEBAR["SidebarController<br/>toggle · dedupe · ribbon"]
         SETTINGS["sanitizeSettings<br/>v7 data.json"]
         FORMAT["format helpers<br/>sort · semver · id guard"]
     end
@@ -25,6 +26,7 @@ flowchart TB
         SETAPI["app.setting<br/>settings tabs"]
         CMD["app.commands<br/>community browser"]
         VAULT["vault.adapter<br/>manifest.json · .hotreload"]
+        WS["app.workspace<br/>leaves · splits · layout"]
     end
 
     subgraph STATE["Persisted State"]
@@ -37,6 +39,9 @@ flowchart TB
     APPUP --> MAIN
     CONFIRM --> MAIN
     ST --> SETTINGS
+    MAIN --> SIDEBAR
+    SIDEBAR --> WS
+    SIDEBAR --> VIEW
     MAIN --> SETTINGS
     MAIN --> FORMAT
     MAIN --> PM
@@ -68,6 +73,12 @@ flowchart TB
 * **Owns:** search debounce, chip state, group dropdown, list grouping, row DOM, context menu, scroll preservation.
 * **Must not:** mutate plugin state directly; every action is delegated to `PluginManagerSidebar`.
 * **Code Anchors (Grep Targets):** `src/views/plugin-manager-view.ts` -> `render`, `buildList`, `addSection`, `addRow`, `openMenu`
+
+### [SUBSYSTEM: Sidebar-Controller] | Aliases: utils/workspace.ts, SidebarController, ribbon, deduplication
+> **1-Line Summary:** Controls sidebar leaf activation, toggle collapse, leaf deduplication, and ribbon active/aria-pressed synchronization.
+* **Owns:** sidebar visibility checks across left/right splits and mobile drawers, single visible leaf deduplication (`getPrimaryLeaf`), split collapse/expansion, and ribbon button `is-active` / `aria-pressed` synchronization.
+* **Must not:** mutate plugin settings or perform direct plugin modifications.
+* **Code Anchors (Grep Targets):** `src/utils/workspace.ts` -> `SidebarController`, `attachRibbon`, `activate`, `toggle`, `syncRibbonState`, `getPrimaryLeaf`
 
 ### [SUBSYSTEM: Settings-Sanitizer] | Aliases: utils/settings.ts, sanitizeSettings, defaults
 > **1-Line Summary:** Validates any stored blob into the exact v7 settings shape, including groups, overrides, and filter enums.

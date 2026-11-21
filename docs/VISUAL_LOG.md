@@ -86,3 +86,49 @@ flowchart TD
 * **Code Anchors (Grep Targets):**
   * `src/modals/manifest-edit-modal.ts` -> `ManifestEditModal.onOpen`
   * `src/main.ts` -> `saveChain`, `applyOverride`
+
+---
+
+### [VISUAL: Sidebar-Controller-Toggle-And-Deduplication-Flow] | Aliases: sidebar toggle, ribbon state sync, leaf deduplication, SidebarController
+> **1-Line Summary:** How SidebarController activates, toggles, deduplicates open leaves, and synchronizes ribbon active styling and ARIA state.
+
+* **Plain-English Walkthrough:** When the user clicks the ribbon toggle icon or executes the toggle command, `SidebarController` checks if any sidebar leaf containing `PluginManagerView` is currently visible and uncollapsed. If visible, it collapses the split dock to tuck the sidebar away and turns off the ribbon active state. If not visible, it calls `activate()`, which finds or creates the leaf, purges any duplicate leaves by detaching them, expands the sidebar split, reveals/focuses the leaf, and updates the ribbon icon with `.is-active` and `aria-pressed="true"`.
+
+```mermaid
+flowchart TD
+    %% Color Definitions (Obsidian & GitHub compatible)
+    classDef startNode fill:#1d4ed8,stroke:#1e3a8a,color:#ffffff
+    classDef processNode fill:#0f766e,stroke:#115e59,color:#ffffff
+    classDef outputNode fill:#15803d,stroke:#14532d,color:#ffffff
+    classDef trapNode fill:#b91c1c,stroke:#7f1d1d,color:#ffffff
+
+    Start([User clicks Ribbon or invokes Toggle Command]):::startNode --> CheckVis{Is PluginManagerView visible & split expanded?}:::processNode
+
+    CheckVis -->|Yes - Visible| CollapseSplit[Collapse split dock or detach unanchored leaf]:::processNode
+    CollapseSplit --> SyncOff[syncRibbonState: Remove .is-active & aria-pressed=false]:::processNode
+    SyncOff --> CollapsedDone([Sidebar Collapsed & Ribbon Inactive]):::outputNode
+
+    CheckVis -->|No - Hidden/Collapsed| ActivateCall[Call activate: Locate primary leaf]:::processNode
+    ActivateCall --> FindLeaves{Leaves of VIEW_TYPE exist in workspace?}:::processNode
+
+    FindLeaves -->|None| CreateLeaf[workspace.getRightLeaf: setViewState VIEW_TYPE]:::processNode
+    FindLeaves -->|1 or More| DedupeLeaves[getPrimaryLeaf: Keep visible primary & detach all duplicate leaves]:::trapNode
+
+    CreateLeaf --> ExpandSplit[Ensure parent split dock is expanded]:::processNode
+    DedupeLeaves --> ExpandSplit
+
+    ExpandSplit --> FocusLeaf[revealLeaf or setActiveLeaf with focus]:::processNode
+    FocusLeaf --> SyncOn[syncRibbonState: Add .is-active & aria-pressed=true]:::processNode
+    SyncOn --> ActiveDone([Sidebar Visible & Ribbon Highlighted]):::outputNode
+
+    subgraph Legend["Legend (Color Guide)"]
+        L1([Blue = User Trigger / Entry Point]):::startNode
+        L2[Teal = Workspace Discovery & Navigation Step]:::processNode
+        L3([Green = Successful Final State]):::outputNode
+        L4[Red = Leaf Deduplication & Cleanup Guard]:::trapNode
+    end
+```
+
+* **Code Anchors (Grep Targets):**
+  * `src/utils/workspace.ts` -> `SidebarController`, `toggle`, `activate`, `getPrimaryLeaf`, `syncRibbonState`
+  * `src/main.ts` -> `toggleView`, `activateView`, `sidebar`
