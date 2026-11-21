@@ -78,9 +78,9 @@ flowchart TB
 
 ### [SUBSYSTEM: Host-Bridge] | Aliases: services/host-bridge.ts, HostBridge, raw host adapters
 > **1-Line Summary:** Encapsulates all defensive interactions with Obsidian's internal plugins, community plugins, settings, commands, and vault filesystem.
-* **Owns:** `listPlugins`, `applyEnabled`, `toggleCorePlugin`, `uninstallPlugin`, `saveLocalManifest`, `toggleHotReload`, `revealInExplorer`, and `openCommunityBrowser`.
+* **Owns:** `listPlugins`, `applyEnabled`, `toggleCorePlugin`, `uninstallPlugin`, `saveLocalManifest`, `toggleHotReload`, `revealInExplorer`, `openCommunityBrowser`, and toggleable `openPluginSettings` with `isSettingsOpenFor`.
 * **Must not:** persist plugin settings or manage UI state.
-* **Code Anchors (Grep Targets):** `src/services/host-bridge.ts` -> `HostBridge`, `listPlugins`, `applyEnabled`, `toggleCorePlugin`, `saveLocalManifest`
+* **Code Anchors (Grep Targets):** `src/services/host-bridge.ts` -> `HostBridge`, `listPlugins`, `applyEnabled`, `toggleCorePlugin`, `saveLocalManifest`, `openPluginSettings`, `isSettingsOpenFor`
 
 ### [SUBSYSTEM: Update-Service] | Aliases: services/update-service.ts, UpdateService, plugin updates, desktop release
 > **1-Line Summary:** Manages community plugin update checks, batch updates, and Obsidian desktop software update verification.

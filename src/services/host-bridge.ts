@@ -12,6 +12,7 @@ import type {
 	CorePluginInstance,
 	ElectronShellApi,
 	PluginManagerApi,
+	SettingApi,
 } from "../utils/obsidian-internals";
 
 interface WindowWithNode {
@@ -320,10 +321,35 @@ export class HostBridge {
 		}
 	}
 
+	private isSettingsOpenFor(setting: SettingApi, pluginId: string): boolean {
+		const activeId =
+			setting.activeTab?.id ?? setting.activeTab?.plugin?.manifest?.id;
+		if (activeId !== pluginId) return false;
+
+		if (typeof setting.isOpen === "boolean") return setting.isOpen;
+
+		const el = setting.modalEl ?? setting.containerEl ?? setting.activeTab?.containerEl;
+		if (el) {
+			const winClosed = el.ownerDocument?.defaultView?.closed ?? false;
+			return !winClosed && el.isConnected && el.isShown();
+		}
+
+		return Boolean(setting.win && !setting.win.closed);
+	}
+
 	openPluginSettings(plugin: ManagedPlugin): void {
 		const setting = this.internals.setting;
 		if (!setting) return;
 		try {
+			if (this.isSettingsOpenFor(setting, plugin.id)) {
+				if (typeof setting.close === "function") {
+					setting.close();
+				} else {
+					setting.win?.close?.();
+				}
+				return;
+			}
+
 			if (!plugin.enabled) {
 				new Notice(`Enable "${plugin.name}" first to access settings.`);
 				return;

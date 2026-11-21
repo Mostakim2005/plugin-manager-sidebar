@@ -42,10 +42,19 @@ export interface SettingsTabLike {
 
 export interface SettingApi {
 	open?: () => void;
+	close?: () => void;
 	openTabById?: (id: string) => void;
+	isOpen?: boolean;
+	modalEl?: HTMLElement;
+	containerEl?: HTMLElement;
+	win?: Window;
 	settingTabs?: SettingsTabLike[];
 	pluginTabs?: SettingsTabLike[];
-	activeTab?: { containerEl?: HTMLElement } | null;
+	activeTab?: {
+		id?: string;
+		containerEl?: HTMLElement;
+		plugin?: { manifest?: { id?: string } };
+	} | null;
 }
 
 export interface CommandLike {

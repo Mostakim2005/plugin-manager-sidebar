@@ -242,3 +242,45 @@ flowchart TD
   * `src/services/host-bridge.ts` -> `HostBridge`
   * `src/services/update-service.ts` -> `UpdateService`
   * `src/main.ts` -> `exclusive`, `safe`
+
+---
+
+### [VISUAL: Plugin-Settings-Window-Toggle-Flow] | Aliases: settings toggle flow, close settings, openPluginSettings
+> **1-Line Summary:** How HostBridge checks active settings tab state to either close an open settings modal or open the target tab.
+
+* **Plain-English Walkthrough:** When the user clicks the gear settings icon on a plugin row, `HostBridge` queries `SettingApi` to determine whether settings is already open and active on that plugin's tab. If open, it closes the modal/window immediately, providing a quick toggle shortcut. If closed or active on a different tab, it ensures the plugin is enabled and opens the target plugin settings tab directly.
+
+```mermaid
+flowchart TD
+    %% Color Definitions (Obsidian & GitHub compatible)
+    classDef startNode fill:#1d4ed8,stroke:#1e3a8a,color:#ffffff
+    classDef processNode fill:#0f766e,stroke:#115e59,color:#ffffff
+    classDef outputNode fill:#15803d,stroke:#14532d,color:#ffffff
+    classDef trapNode fill:#b91c1c,stroke:#7f1d1d,color:#ffffff
+
+    Start([User clicks Gear Settings icon on plugin row]):::startNode --> SettingAvail{app.setting interface available?}:::processNode
+
+    SettingAvail -->|No| NoApiDone([No action / unsupported]):::trapNode
+    SettingAvail -->|Yes| ActiveCheck{isSettingsOpenFor: Active tab matches target plugin?}:::processNode
+
+    ActiveCheck -->|Yes - Open & Matching| CloseCall[setting.close or win.close]:::processNode
+    CloseCall --> ClosedDone([Settings Modal Closed]):::outputNode
+
+    ActiveCheck -->|No - Closed or Different Tab| EnabledCheck{Is target plugin enabled?}:::processNode
+
+    EnabledCheck -->|No - Disabled| NoticeTrap[Show Notice: Enable plugin first to access settings]:::trapNode
+    EnabledCheck -->|Yes| OpenTab[setting.open and openTabById]:::processNode
+
+    OpenTab --> OpenDone([Settings Modal Opened to Plugin Tab]):::outputNode
+
+    subgraph Legend["Legend (Color Guide)"]
+        L1([Blue = User Action / Entry Point]):::startNode
+        L2[Teal = Host Query & Navigation Step]:::processNode
+        L3([Green = Successful Open or Close State]):::outputNode
+        L4[Red = Disabled Guard / Missing Host Guard]:::trapNode
+    end
+```
+
+* **Code Anchors (Grep Targets):**
+  * `src/services/host-bridge.ts` -> `openPluginSettings`, `isSettingsOpenFor`
+  * `src/utils/obsidian-internals.ts` -> `SettingApi`

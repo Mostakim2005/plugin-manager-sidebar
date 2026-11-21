@@ -165,6 +165,17 @@ flowchart LR
   * `src/services/update-service.ts` -> `UpdateService`
   * `src/views/plugin-filter.ts` -> `applyPluginFilters`
 
+### [DECISION: Toggleable-Plugin-Settings-Window] | Aliases: settings toggle, close settings, isSettingsOpenFor, gear button
+> **1-Line Summary:** Clicking a plugin's settings button when its tab is already open and visible closes the Obsidian settings modal.
+* **Decision Maker:** `[DECIDED BY: AGENT]`
+* **Original User Intention:** Provide consistent toggle ergonomics across all sidebar actions (similar to ribbon and sidebar view toggles).
+* **Options Considered:**
+  * **Option A (Rejected):** Only call `open()` and `openTabById()`. If settings was already visible on that tab, clicking the gear did nothing or redundantly reopened.
+  * **Option B (Chosen):** Inspect `setting.activeTab?.id` (or `manifest.id`) and visibility status (`isOpen`, `isShown()`, `win.closed`); if already open for the target plugin, invoke `setting.close()` or `win.close()`.
+* **Code Anchors (Grep Targets):**
+  * `src/services/host-bridge.ts` -> `openPluginSettings`, `isSettingsOpenFor`
+  * `src/utils/obsidian-internals.ts` -> `SettingApi`
+
 ## 2. Landmines & Hard-Won Traps
 
 ### [TRAP: Host-Internals-Are-Optional] | Aliases: app.plugins undefined, restricted mode, mobile

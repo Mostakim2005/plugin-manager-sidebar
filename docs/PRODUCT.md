@@ -101,11 +101,12 @@
   * `src/main.ts` -> `uninstallPlugin`
   * `src/modals/confirm-modal.ts` -> `ConfirmModal`
 
-### [FEATURE: Settings-And-Community-Shortcuts] | Aliases: plugin settings, gear icon, browse community, restricted mode
-> **1-Line Summary:** Each row links to its plugin's settings tab, and the header opens Obsidian's community plugin browser.
-* **User Intention (Non-Negotiable):** A plugin with no settings tab or a disabled plugin must get a clear notice instead of a blank settings pane.
-* **Visual / UI Behavior:** Gear button per row; compass button in the header; in Restricted Mode the browser action explains the problem and opens the right settings tab.
+### [FEATURE: Settings-And-Community-Shortcuts] | Aliases: plugin settings, gear icon, browse community, restricted mode, settings toggle
+> **1-Line Summary:** Each row toggles its plugin's settings tab open or closed, and the header opens Obsidian's community plugin browser.
+* **User Intention (Non-Negotiable):** A plugin with no settings tab or a disabled plugin must get a clear notice instead of a blank settings pane. Clicking the gear button for a plugin whose settings are already active must close the settings window rather than reopening or getting stuck.
+* **Visual / UI Behavior:** Gear button per row acts as an open/close toggle for that plugin's settings tab; compass button in the header; in Restricted Mode the browser action explains the problem and opens the right settings tab.
 * **Code Anchors (Grep Targets):**
+  * `src/services/host-bridge.ts` -> `openPluginSettings`, `isSettingsOpenFor`
   * `src/main.ts` -> `openPluginSettings`, `openCommunityBrowser`, `communityEnabled`
 
 ### [FEATURE: Persisted-View-State] | Aliases: data.json, glassmorphism, auto update check, remember filters
