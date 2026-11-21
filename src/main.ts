@@ -50,7 +50,22 @@ export default class PluginManagerSidebar extends Plugin {
 		const ribbonEl = this.addRibbonIcon("blocks", "Toggle plugin manager", () => {
 			this.safe(() => this.toggleView(), "toggle sidebar");
 		});
+		ribbonEl.setAttribute("aria-label", "Toggle plugin manager sidebar");
 		this.sidebar.attachRibbon(ribbonEl);
+
+		const statusEl = this.addStatusBarItem();
+		statusEl.addClass("pms-status-pill");
+		statusEl.setText("Plugins");
+		statusEl.setAttribute("role", "button");
+		statusEl.setAttribute("tabindex", "0");
+		statusEl.setAttribute("aria-label", "Toggle Plugin Manager Sidebar");
+		statusEl.addEventListener("click", () => this.safe(() => this.toggleView(), "toggle sidebar"));
+		statusEl.addEventListener("keydown", (evt: KeyboardEvent) => {
+			if (evt.key === "Enter" || evt.key === " ") {
+				evt.preventDefault();
+				this.safe(() => this.toggleView(), "toggle sidebar");
+			}
+		});
 		this.registerEvent(
 			this.app.workspace.on("layout-change", () => this.sidebar.syncRibbonState()),
 		);

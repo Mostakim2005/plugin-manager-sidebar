@@ -258,3 +258,18 @@ npm run build                   # tsc + esbuild -> main.js
 1. Never rename a key without reading the old key first.
 2. Keep sanitization total: any input, including `null`, must produce valid settings.
 3. Save only after a successful load, and never inside the sanitizer.
+
+### [SUBSYSTEM: UI-UX-Parity-And-Accessibility] | Aliases: status bar, ribbon icon, confirm modal, focus-visible, reduced-motion
+> **1-Line Summary:** Integrates native Obsidian workspace UI touchpoints (ribbon launcher, live status bar pill, modal confirmation guardrails) and WCAG AA accessibility styles.
+* **Architecture / Subsystem Role:** Standardizes the plugin surface across desktop and mobile Obsidian clients with keyboard accessibility, reduced-motion safety, and high-visibility status telemetry.
+* **Component Diagram:**
+```mermaid
+graph LR
+    subgraph UI_Parity["UI/UX Universal Baseline"]
+        Ribbon["Ribbon Icon Launcher"] --> Leaf["Workspace Leaf / Modal"]
+        StatusBar["Status Bar Pill"] --> Leaf
+        Modals["Destructive Actions"] --> Confirm["ConfirmModal Guardrail"]
+        CSS["Universal CSS"] --> A11y["Focus-Visible & Reduced Motion"]
+    end
+```
+* **Code Anchors (Grep Targets):** `src/main.ts`, `styles.css`

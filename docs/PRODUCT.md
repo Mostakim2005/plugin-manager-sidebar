@@ -157,3 +157,9 @@
 * No custom plugin installer, registry mirror, or download cache.
 * No editing of official plugin source or manifests.
 * No command or hotkey management; that stays in Obsidian's own settings.
+
+### [FEATURE: UI-UX-Parity-And-Accessibility] | Aliases: status bar toggle pill, ribbon aria, focus visible, reduced motion
+> **1-Line Summary:** Adds clickable Plugins Status Bar toggle pill, accessible ARIA attributes on ribbon buttons, and WCAG accessibility standards.
+* **User Intention (Non-Negotiable):** Enable one-click status bar toggling of the plugin manager sidebar with full keyboard focus and screen-reader accessibility.
+* **Visual / UI Behavior:** Status bar pill indicates plugin count and toggles sidebar visibility on click; high-contrast focus rings on all interactive elements.
+* **Code Anchors (Grep Targets):** `src/main.ts`, `styles.css`
