@@ -17,6 +17,9 @@
 * `src/` — modular TypeScript source; one responsibility per file:
   * `main.ts` — lifecycle, host adapters, all plugin actions, view refresh, group editor.
   * `views/plugin-manager-view.ts` — `PluginManagerView`: header controls, stats, sections, rows, row/context menus.
+  * `views/plugin-filter.ts` — pure filter and search pipeline for inventory records.
+  * `services/host-bridge.ts` — `HostBridge`: defensive Obsidian host runtime adapters.
+  * `services/update-service.ts` — `UpdateService`: plugin updates and Obsidian app releases.
   * `modals/group-modal.ts` — `GroupModal` (name, search, category chips, checkbox selection, delete).
   * `modals/manifest-edit-modal.ts` — `ManifestEditModal` (local manifest edit vs official override).
   * `modals/confirm-modal.ts` — `ConfirmModal` for destructive actions.

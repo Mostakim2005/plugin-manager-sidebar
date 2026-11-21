@@ -10,7 +10,8 @@ import type {
 	SourceFilter,
 	StateFilter,
 } from "../types";
-import { VIEW_TYPE, byEnabledThenName, byName, logError } from "../utils/format";
+import { VIEW_TYPE, logError } from "../utils/format";
+import { filterAndBucketPlugins } from "./plugin-filter";
 
 const SCOPE_ORDER: PluginScope[] = ["community", "core", "all"];
 const SCOPE_LABELS: Record<PluginScope, string> = {
@@ -457,103 +458,19 @@ export class PluginManagerView extends ItemView {
 			}
 		}
 
-		const query = this.query.trim().toLowerCase();
-		const byId = new Map(all.map((plugin) => [plugin.id, plugin]));
-		const sortFn = settings.sortBy === "alphabetical" ? byName : byEnabledThenName;
+		const { sections, shown } = filterAndBucketPlugins(
+			all,
+			settings,
+			this.query,
+			(id) => this.plugin.getUpdatesRecord(id),
+		);
 
-		const filtered = all
-			.filter((plugin) => {
-				const matchesSearch =
-					!query ||
-					plugin.name.toLowerCase().includes(query) ||
-					plugin.id.toLowerCase().includes(query) ||
-					plugin.description.toLowerCase().includes(query) ||
-					plugin.author.toLowerCase().includes(query);
-				if (!matchesSearch) return false;
-
-				if (settings.sourceFilter === "official" && (plugin.isCore || !plugin.isOfficial)) {
-					return false;
-				}
-				if (settings.sourceFilter === "local" && (plugin.isCore || !plugin.isLocal)) {
-					return false;
-				}
-				if (settings.stateFilter === "enabled" && !plugin.enabled) return false;
-				if (settings.stateFilter === "disabled" && plugin.enabled) return false;
-				if (settings.pinnedOnly && !settings.pinned.includes(plugin.id)) return false;
-				if (
-					settings.updatesOnly &&
-					(!this.plugin.getUpdatesRecord(plugin.id) || plugin.isCore)
-				) {
-					return false;
-				}
-				return true;
-			})
-			.sort(sortFn);
-
-		const filteredSet = new Set(filtered);
-		const pinnedSet = new Set(settings.pinned);
-		const pinned = settings.pinned
-			.map((id) => byId.get(id))
-			.filter((plugin): plugin is ManagedPlugin => plugin !== undefined && filteredSet.has(plugin))
-			.sort(sortFn);
-
-		let shown = 0;
-
-		if (pinned.length > 0 && !settings.pinnedOnly) {
-			this.addSection("Pinned", pinned);
-			shown += pinned.length;
-		}
-
-		if (settings.view === "group") {
-			const grouped = new Set<string>();
-			const selected = settings.selectedGroup || "all";
-
-			for (const group of settings.groups) {
-				for (const id of group.plugins) grouped.add(id);
-
-				if (selected !== "all" && selected !== group.id) continue;
-
-				const members = group.plugins
-					.map((id) => byId.get(id))
-					.filter((plugin): plugin is ManagedPlugin => plugin !== undefined && filteredSet.has(plugin))
-					.sort(sortFn);
-
-				if (members.length > 0) {
-					this.addSection(group.name, members, {
-						group,
-						total: members.length,
-					});
-					shown += members.length;
-				}
-			}
-
-			if (selected === "all" || selected === "_ungrouped") {
-				const ungrouped = filtered.filter(
-					(plugin) =>
-						!grouped.has(plugin.id) &&
-						(settings.pinnedOnly || !pinnedSet.has(plugin.id)),
-				);
-
-				if (ungrouped.length > 0) {
-					this.addSection("Other Plugins", ungrouped);
-					shown += ungrouped.length;
-				}
-			}
-		} else {
-			const rest = filtered.filter(
-				(plugin) => settings.pinnedOnly || !pinnedSet.has(plugin.id),
+		for (const section of sections) {
+			this.addSection(
+				section.title,
+				section.plugins,
+				section.group ? { group: section.group, total: section.total } : undefined,
 			);
-			if (settings.sortBy === "alphabetical" && settings.stateFilter === "all") {
-				if (rest.length > 0) this.addSection("All Plugins (A-Z)", rest);
-				shown += rest.length;
-			} else {
-				const enabled = rest.filter((plugin) => plugin.enabled);
-				const disabled = rest.filter((plugin) => !plugin.enabled);
-
-				if (enabled.length > 0) this.addSection("Enabled", enabled);
-				if (disabled.length > 0) this.addSection("Disabled", disabled);
-				shown += rest.length;
-			}
 		}
 
 		if (shown === 0) {
