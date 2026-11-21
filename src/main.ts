@@ -23,6 +23,7 @@ import {
 	byName,
 	compareSemver,
 	errMsg,
+	isRecord,
 	logError,
 	newGroupId,
 	sanitizePluginId,
@@ -47,12 +48,6 @@ interface WindowWithProcess {
 
 interface ElectronPathApi {
 	join: (...parts: string[]) => string;
-}
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-	return value !== null && typeof value === "object" && !Array.isArray(value)
-		? (value as Record<string, unknown>)
-		: null;
 }
 
 export default class PluginManagerSidebar extends Plugin {
@@ -334,8 +329,8 @@ export default class PluginManagerSidebar extends Plugin {
 
 		let raw: Record<string, unknown> = {};
 		try {
-			const parsed = asRecord(JSON.parse(await this.app.vault.adapter.read(manifestPath)));
-			if (parsed) raw = parsed;
+			const parsed: unknown = JSON.parse(await this.app.vault.adapter.read(manifestPath));
+			if (isRecord(parsed)) raw = parsed;
 		} catch {
 			const manifest = this.pm?.manifests?.[safeId];
 			if (manifest) raw = { ...manifest };
@@ -360,8 +355,8 @@ export default class PluginManagerSidebar extends Plugin {
 
 		try {
 			const res = await requestUrl({ url: DESKTOP_RELEASES_URL, method: "GET" });
-			const data = asRecord(res.json);
-			if (res.status === 200 && data) {
+			const data: unknown = res.json;
+			if (res.status === 200 && isRecord(data)) {
 				if (typeof data.latestVersion === "string") {
 					latestVersion = data.latestVersion;
 				} else {
@@ -381,8 +376,8 @@ export default class PluginManagerSidebar extends Plugin {
 					url: "https://api.github.com/repos/obsidianmd/obsidian-releases/releases/latest",
 					method: "GET",
 				});
-				const data = asRecord(res.json);
-				if (res.status === 200 && data && typeof data.tag_name === "string") {
+				const data: unknown = res.json;
+				if (res.status === 200 && isRecord(data) && typeof data.tag_name === "string") {
 					latestVersion = data.tag_name.replace(/^v/, "");
 				}
 			} catch (error) {
@@ -410,14 +405,17 @@ export default class PluginManagerSidebar extends Plugin {
 
 	/* ---------- community browser ---------- */
 
+	private ensureCommunityEnabled(): boolean {
+		if (this.communityEnabled()) return true;
+		new Notice("Restricted mode is active. Enable community plugins in settings first.");
+		this.internals.setting?.open?.();
+		this.internals.setting?.openTabById?.("community-plugins");
+		return false;
+	}
+
 	openCommunityBrowser(): void {
 		const setting = this.internals.setting;
-		if (!this.communityEnabled()) {
-			new Notice("Restricted Mode is active. Enable community plugins in settings first.");
-			setting?.open?.();
-			setting?.openTabById?.("community-plugins");
-			return;
-		}
+		if (!this.ensureCommunityEnabled()) return;
 
 		const commands = this.internals.commands?.commands ?? {};
 		const browseCommand: CommandLike | undefined = Object.values(commands).find(
@@ -508,12 +506,7 @@ export default class PluginManagerSidebar extends Plugin {
 		if (plugin.isCore) return;
 
 		if (plugin.isOfficial) {
-			if (!this.communityEnabled()) {
-				new Notice("Restricted mode is active. Enable community plugins in settings first.");
-				this.internals.setting?.open?.();
-				this.internals.setting?.openTabById?.("community-plugins");
-				return;
-			}
+			if (!this.ensureCommunityEnabled()) return;
 			window.open(`obsidian://show-plugin?id=${encodeURIComponent(plugin.id)}`);
 			return;
 		}
@@ -644,7 +637,7 @@ export default class PluginManagerSidebar extends Plugin {
 
 	async exclusive(label: string, fn: () => Promise<void>): Promise<void> {
 		if (this.busy) {
-			new Notice("Plugin Manager is busy processing previous action.");
+			new Notice("Plugin manager is busy processing previous action.");
 			return;
 		}
 		this.busy = true;
@@ -707,15 +700,19 @@ export default class PluginManagerSidebar extends Plugin {
 		}
 	}
 
+	private async setPluginEnabled(plugin: ManagedPlugin, want: boolean): Promise<void> {
+		if (plugin.isCore) {
+			await this.toggleCorePlugin(plugin.id, want);
+		} else {
+			await this.applyEnabled(plugin.id, want);
+		}
+	}
+
 	togglePlugin(plugin: ManagedPlugin): Promise<void> {
 		const want = !plugin.enabled;
 		const label = `${want ? "enable" : "disable"} "${plugin.name}"`;
 		return this.exclusive(label, async () => {
-			if (plugin.isCore) {
-				await this.toggleCorePlugin(plugin.id, want);
-			} else {
-				await this.applyEnabled(plugin.id, want);
-			}
+			await this.setPluginEnabled(plugin, want);
 			new Notice(`${plugin.name} ${want ? "enabled" : "disabled"}.`);
 		});
 	}
@@ -744,11 +741,7 @@ export default class PluginManagerSidebar extends Plugin {
 				let ok = 0;
 				for (const plugin of todo) {
 					try {
-						if (plugin.isCore) {
-							await this.toggleCorePlugin(plugin.id, want);
-						} else {
-							await this.applyEnabled(plugin.id, want);
-						}
+						await this.setPluginEnabled(plugin, want);
 						ok++;
 					} catch (error) {
 						logError(`could not toggle "${plugin.id}" in group`, error);
@@ -854,12 +847,16 @@ export default class PluginManagerSidebar extends Plugin {
 							this.settings.groups = this.settings.groups.filter(
 								(entry) => entry.id !== group.id,
 							);
+							if (this.settings.selectedGroup === group.id) {
+								this.settings.selectedGroup = "all";
+							}
 							await this.saveSettings();
 							this.refreshViews();
 						})();
 					},
 				).open();
 			},
+			this.registryLoaded,
 		).open();
 	}
 }

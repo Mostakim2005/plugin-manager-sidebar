@@ -3,7 +3,7 @@ import type {
 	PluginManagerSettings,
 	PluginOverride,
 } from "../types";
-import { newGroupId, sanitizePluginId, unique } from "./format";
+import { isRecord, newGroupId, sanitizePluginId, unique } from "./format";
 
 export const SETTINGS_VERSION = 7;
 
@@ -51,10 +51,6 @@ export function sanitizeGithubOwner(value: unknown): string {
 	candidate = candidate.replace(/^https?:\/\/(?:www\.)?github\.com\//i, "");
 	candidate = candidate.split("/")[0]?.trim() ?? "";
 	return GITHUB_OWNER_RE.test(candidate) ? candidate : "";
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function groupList(value: unknown): PluginGroup[] {

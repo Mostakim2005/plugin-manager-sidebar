@@ -27,7 +27,6 @@
   * `utils/format.ts` — constants, sorters, semver, id sanitization, error helpers.
   * `utils/obsidian-internals.ts` — optional types for `app.plugins`, `app.internalPlugins`, `app.setting`, `app.commands`.
   * `types.ts` — settings and inventory contracts.
-  * `async.ts` — `voidAsync` wrapper for async DOM listeners.
 * `docs/` — Core Markdown documentation suite (`PRODUCT.md`, `ARCHITECTURE.md`, `DECISIONS_AND_TRAPS.md`, `VISUAL_LOG.md`).
 * `preview/` — On-demand interactive HTML/CSS/JS visual previews (e.g., `preview/visual-guide.html`), created only upon explicit request.
 * `main.js` at the root is a generated build artifact; edit `src/` instead.

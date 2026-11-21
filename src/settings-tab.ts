@@ -20,7 +20,7 @@ export class PluginManagerSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("Frosted glassmorphism")
 			.setDesc(
-				"Enable translucent glass panels, subtle border luminance, and Material 3 elevation.",
+				"Enable translucent glass panels, subtle border luminance, and material 3 elevation.",
 			)
 			.addToggle((toggle) =>
 				toggle.setValue(this.plugin.settings.glassmorphism).onChange(async (value) => {
@@ -37,7 +37,7 @@ export class PluginManagerSettingTab extends PluginSettingTab {
 			)
 			.addDropdown((dropdown) =>
 				dropdown
-					.addOption("status", "Status groups (Enabled / Disabled)")
+					.addOption("status", "Status groups (enabled / disabled)")
 					.addOption("group", "Custom action groups")
 					.setValue(this.plugin.settings.view)
 					.onChange(async (value) => {
@@ -69,7 +69,7 @@ export class PluginManagerSettingTab extends PluginSettingTab {
 			.addDropdown((dropdown) =>
 				dropdown
 					.addOption("status", "Enabled first, then alphabetical")
-					.addOption("alphabetical", "Pure alphabetical (A-Z)")
+					.addOption("alphabetical", "Pure alphabetical (a-z)")
 					.setValue(this.plugin.settings.sortBy)
 					.onChange(async (value) => {
 						this.plugin.settings.sortBy = value as SortBy;

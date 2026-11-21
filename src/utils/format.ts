@@ -22,6 +22,10 @@ export function sleep(ms: number): Promise<void> {
 	return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
+export function isRecord(value: unknown): value is Record<string, unknown> {
+	return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
 export function unique<T>(values: T[]): T[] {
 	return [...new Set(values)];
 }

@@ -22,6 +22,7 @@ export class GroupModal extends Modal {
 		private readonly group: PluginGroup | null,
 		private readonly onSave: (name: string, ids: string[]) => Promise<void>,
 		private readonly onDelete: () => void,
+		private readonly registryLoaded = true,
 	) {
 		super(app);
 		this.selected = new Set(group ? group.plugins : []);
@@ -105,7 +106,7 @@ export class GroupModal extends Modal {
 
 				if (plugin.isCore) {
 					row.createSpan({ text: "Core", cls: "pms-source-badge is-core" });
-				} else if (plugin.isLocal) {
+				} else if (this.registryLoaded && plugin.isLocal) {
 					row.createSpan({ text: "Local", cls: "pms-source-badge is-manual" });
 				}
 

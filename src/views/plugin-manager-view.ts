@@ -33,6 +33,8 @@ const STATE_LABELS: Record<StateFilter, string> = {
 
 export class PluginManagerView extends ItemView {
 	private query = "";
+	private topActionsEl: HTMLElement | null = null;
+	private controlsEl: HTMLElement | null = null;
 	private bodyEl: HTMLElement | null = null;
 	private searchTimeout: number | null = null;
 	private lastRenderSignature = "";
@@ -49,7 +51,7 @@ export class PluginManagerView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return "Plugin Manager";
+		return "Plugin manager";
 	}
 
 	getIcon(): string {
@@ -75,42 +77,86 @@ export class PluginManagerView extends ItemView {
 			window.clearTimeout(this.searchTimeout);
 			this.searchTimeout = null;
 		}
+		this.topActionsEl = null;
+		this.controlsEl = null;
+		this.bodyEl = null;
 		this.contentEl.empty();
 	}
 
 	render(): void {
 		const root = this.contentEl;
 		const scrollTop = this.bodyEl?.scrollTop ?? 0;
-		root.empty();
-		root.addClass("pms-view");
 
-		const header = root.createDiv("pms-header");
-		const top = header.createDiv("pms-top");
-		const searchWrap = top.createDiv("pms-search-wrap");
-		const input = searchWrap.createEl("input", {
-			type: "search",
-			placeholder: "Search plugins…",
-			cls: "pms-search-input",
-			attr: { "aria-label": "Search installed and core plugins" },
-		});
-		input.value = this.query;
-		input.addEventListener("input", () => {
-			this.query = input.value;
-			if (this.searchTimeout !== null) window.clearTimeout(this.searchTimeout);
-			this.searchTimeout = window.setTimeout(() => {
-				this.renderList();
-			}, 150);
-		});
-		input.addEventListener("keydown", (event) => {
-			if (event.key === "Escape") {
-				input.value = "";
-				this.query = "";
+		if (!this.bodyEl || !this.controlsEl || !this.topActionsEl) {
+			root.empty();
+			root.addClass("pms-view");
+
+			const header = root.createDiv("pms-header");
+			const top = header.createDiv("pms-top");
+			const searchWrap = top.createDiv("pms-search-wrap");
+			const input = searchWrap.createEl("input", {
+				type: "search",
+				placeholder: "Search plugins…",
+				cls: "pms-search-input",
+				attr: { "aria-label": "Search installed and core plugins" },
+			});
+			input.value = this.query;
+			input.addEventListener("input", () => {
+				this.query = input.value;
 				if (this.searchTimeout !== null) window.clearTimeout(this.searchTimeout);
-				this.renderList();
-			}
-		});
+				this.searchTimeout = window.setTimeout(() => {
+					this.renderList();
+				}, 150);
+			});
+			input.addEventListener("keydown", (event) => {
+				if (event.key === "Escape") {
+					input.value = "";
+					this.query = "";
+					if (this.searchTimeout !== null) window.clearTimeout(this.searchTimeout);
+					this.renderList();
+				}
+			});
 
-		const topActions = top.createDiv("pms-top-actions");
+			this.topActionsEl = top.createDiv("pms-top-actions");
+			this.controlsEl = header.createDiv("pms-controls");
+			this.bodyEl = root.createDiv("pms-body");
+		}
+
+		this.renderTopActions();
+		this.renderControlRows();
+		this.renderList();
+		this.bodyEl.scrollTop = scrollTop;
+	}
+
+	private addChip(
+		parent: HTMLElement,
+		text: string,
+		title: string,
+		cls: string,
+		onClick: () => void,
+	): HTMLButtonElement {
+		const btn = parent.createEl("button", {
+			cls,
+			attr: { type: "button", title },
+		});
+		btn.createSpan({ text });
+		btn.addEventListener("click", onClick);
+		return btn;
+	}
+
+	private updateFilter(mutate: () => void): void {
+		mutate();
+		void this.plugin.saveSettings();
+		this.renderTopActions();
+		this.renderControlRows();
+		this.renderList();
+	}
+
+	private renderTopActions(): void {
+		const topActions = this.topActionsEl;
+		if (!topActions) return;
+		topActions.empty();
+
 		const updateCount = this.plugin.getAvailableUpdatesCount();
 
 		this.iconButton(topActions, "compass", "Browse community plugins", () =>
@@ -140,56 +186,61 @@ export class PluginManagerView extends ItemView {
 				this.renderList();
 			})();
 		});
+	}
+
+	private renderControlRows(): void {
+		const controls = this.controlsEl;
+		if (!controls) return;
+		controls.empty();
 
 		const settings = this.plugin.settings;
+		const updateCount = this.plugin.getAvailableUpdatesCount();
 
-		const structureRow = header.createDiv("pms-control-row pms-structure-row");
+		const structureRow = controls.createDiv("pms-control-row pms-structure-row");
 
-		const scopeBtn = structureRow.createEl("button", {
-			cls: `pms-chip ${settings.scope !== "community" ? "is-active" : ""}`,
-			attr: { type: "button", title: "Click to cycle: Community → Core → All" },
-		});
-		scopeBtn.createSpan({ text: SCOPE_LABELS[settings.scope] });
-		scopeBtn.addEventListener("click", () => {
-			const index = SCOPE_ORDER.indexOf(settings.scope);
-			settings.scope = SCOPE_ORDER[(index + 1) % SCOPE_ORDER.length] ?? "community";
-			void this.plugin.saveSettings();
-			this.render();
-		});
+		this.addChip(
+			structureRow,
+			SCOPE_LABELS[settings.scope],
+			"Click to cycle: Community → core → all",
+			`pms-chip ${settings.scope !== "community" ? "is-active" : ""}`,
+			() =>
+				this.updateFilter(() => {
+					const index = SCOPE_ORDER.indexOf(settings.scope);
+					settings.scope = SCOPE_ORDER[(index + 1) % SCOPE_ORDER.length] ?? "community";
+				}),
+		);
 
-		const viewBtn = structureRow.createEl("button", {
-			cls: `pms-chip ${settings.view === "group" ? "is-active" : ""}`,
-			attr: { type: "button", title: "Click to toggle: Status ↔ Groups" },
-		});
-		viewBtn.createSpan({
-			text: settings.view === "group" ? "View: Groups" : "View: Status",
-		});
-		viewBtn.addEventListener("click", () => {
-			settings.view = settings.view === "status" ? "group" : "status";
-			void this.plugin.saveSettings();
-			this.render();
-		});
+		this.addChip(
+			structureRow,
+			settings.view === "group" ? "View: Groups" : "View: Status",
+			"Click to toggle: Status ↔ groups",
+			`pms-chip ${settings.view === "group" ? "is-active" : ""}`,
+			() =>
+				this.updateFilter(() => {
+					settings.view = settings.view === "status" ? "group" : "status";
+				}),
+		);
 
 		if (settings.view === "group") {
+			const validGroup =
+				settings.selectedGroup === "all" ||
+				settings.selectedGroup === "_ungrouped" ||
+				settings.groups.some((group) => group.id === settings.selectedGroup);
+			if (!validGroup) settings.selectedGroup = "all";
+
 			const groupSelect = structureRow.createEl("select", {
 				cls: "pms-group-select",
 				attr: { title: "Filter by group" },
 			});
-
-			const option = (label: string, value: string): HTMLOptionElement => {
+			const addOption = (label: string, value: string): void => {
 				const opt = groupSelect.createEl("option");
 				opt.value = value;
 				opt.text = label;
-				return opt;
+				if (settings.selectedGroup === value) opt.selected = true;
 			};
-			const allOption = option("All Groups", "all");
-			if (settings.selectedGroup === "all") allOption.selected = true;
-			for (const group of settings.groups) {
-				const opt = option(group.name, group.id);
-				if (settings.selectedGroup === group.id) opt.selected = true;
-			}
-			const ungrouped = option("Ungrouped", "_ungrouped");
-			if (settings.selectedGroup === "_ungrouped") ungrouped.selected = true;
+			addOption("All Groups", "all");
+			for (const group of settings.groups) addOption(group.name, group.id);
+			addOption("Ungrouped", "_ungrouped");
 
 			groupSelect.addEventListener("change", () => {
 				settings.selectedGroup = groupSelect.value;
@@ -198,85 +249,81 @@ export class PluginManagerView extends ItemView {
 			});
 		}
 
-		const criteriaRow = header.createDiv("pms-control-row pms-criteria-row");
+		const criteriaRow = controls.createDiv("pms-control-row pms-criteria-row");
 
 		if (settings.scope !== "core") {
 			let sourceCls = "pms-chip";
 			if (settings.sourceFilter === "official") sourceCls += " is-source-official";
 			else if (settings.sourceFilter === "local") sourceCls += " is-source-local";
 
-			const sourceBtn = criteriaRow.createEl("button", {
-				cls: sourceCls,
-				attr: { type: "button", title: "Click to cycle: All Sources → Official → Local" },
-			});
-			sourceBtn.createSpan({ text: SOURCE_LABELS[settings.sourceFilter] });
-			sourceBtn.addEventListener("click", () => {
-				const index = SOURCE_ORDER.indexOf(settings.sourceFilter);
-				settings.sourceFilter =
-					SOURCE_ORDER[(index + 1) % SOURCE_ORDER.length] ?? "all";
-				void this.plugin.saveSettings();
-				this.render();
-			});
+			this.addChip(
+				criteriaRow,
+				SOURCE_LABELS[settings.sourceFilter],
+				"Click to cycle: All sources → official → local",
+				sourceCls,
+				() =>
+					this.updateFilter(() => {
+						const index = SOURCE_ORDER.indexOf(settings.sourceFilter);
+						settings.sourceFilter =
+							SOURCE_ORDER[(index + 1) % SOURCE_ORDER.length] ?? "all";
+					}),
+			);
 		}
 
 		let stateCls = "pms-chip";
 		if (settings.stateFilter === "enabled") stateCls += " is-active";
 		else if (settings.stateFilter === "disabled") stateCls += " is-state-disabled";
 
-		const stateBtn = criteriaRow.createEl("button", {
-			cls: stateCls,
-			attr: { type: "button", title: "Click to cycle: All States → Enabled → Disabled" },
-		});
-		stateBtn.createSpan({ text: STATE_LABELS[settings.stateFilter] });
-		stateBtn.addEventListener("click", () => {
-			const index = STATE_ORDER.indexOf(settings.stateFilter);
-			settings.stateFilter = STATE_ORDER[(index + 1) % STATE_ORDER.length] ?? "all";
-			void this.plugin.saveSettings();
-			this.render();
-		});
+		this.addChip(
+			criteriaRow,
+			STATE_LABELS[settings.stateFilter],
+			"Click to cycle: All states → enabled → disabled",
+			stateCls,
+			() =>
+				this.updateFilter(() => {
+					const index = STATE_ORDER.indexOf(settings.stateFilter);
+					settings.stateFilter =
+						STATE_ORDER[(index + 1) % STATE_ORDER.length] ?? "all";
+				}),
+		);
 
-		const pinnedBtn = criteriaRow.createEl("button", {
-			cls: `pms-chip ${settings.pinnedOnly ? "is-active" : ""}`,
-			attr: { type: "button", title: "Click to toggle pinned filter" },
-		});
-		pinnedBtn.createSpan({ text: "Pinned" });
-		pinnedBtn.addEventListener("click", () => {
-			settings.pinnedOnly = !settings.pinnedOnly;
-			void this.plugin.saveSettings();
-			this.render();
-		});
+		this.addChip(
+			criteriaRow,
+			"Pinned",
+			"Click to toggle pinned filter",
+			`pms-chip ${settings.pinnedOnly ? "is-active" : ""}`,
+			() =>
+				this.updateFilter(() => {
+					settings.pinnedOnly = !settings.pinnedOnly;
+				}),
+		);
 
-		const sortBtn = criteriaRow.createEl("button", {
-			cls: `pms-chip ${settings.sortBy === "alphabetical" ? "is-active" : ""}`,
-			attr: {
-				type: "button",
-				title: "Click to cycle sort: Status (Enabled first) ↔ Alphabetical (A-Z)",
-			},
-		});
-		sortBtn.createSpan({
-			text: settings.sortBy === "alphabetical" ? "Sort: A-Z" : "Sort: Status",
-		});
-		sortBtn.addEventListener("click", () => {
-			settings.sortBy = settings.sortBy === "alphabetical" ? "status" : "alphabetical";
-			void this.plugin.saveSettings();
-			this.render();
-		});
+		this.addChip(
+			criteriaRow,
+			settings.sortBy === "alphabetical" ? "Sort: A-Z" : "Sort: Status",
+			"Click to cycle sort: Status (enabled first) ↔ alphabetical (a-z)",
+			`pms-chip ${settings.sortBy === "alphabetical" ? "is-active" : ""}`,
+			() =>
+				this.updateFilter(() => {
+					settings.sortBy = settings.sortBy === "alphabetical" ? "status" : "alphabetical";
+				}),
+		);
 
 		if (settings.scope !== "core") {
-			const updateBtn = criteriaRow.createEl("button", {
-				cls: `pms-chip ${settings.updatesOnly ? "is-active" : ""}`,
-				attr: { type: "button", title: "Click to toggle updates filter" },
-			});
-			updateBtn.createSpan({ text: "Updates" });
+			const updateBtn = this.addChip(
+				criteriaRow,
+				"Updates",
+				"Click to toggle updates filter",
+				`pms-chip ${settings.updatesOnly ? "is-active" : ""}`,
+				() =>
+					this.updateFilter(() => {
+						settings.updatesOnly = !settings.updatesOnly;
+					}),
+			);
 			if (updateCount > 0) {
 				updateBtn.createSpan({ text: String(updateCount), cls: "pms-chip-badge" });
 				updateBtn.addClass("is-update-chip");
 			}
-			updateBtn.addEventListener("click", () => {
-				settings.updatesOnly = !settings.updatesOnly;
-				void this.plugin.saveSettings();
-				this.render();
-			});
 		}
 
 		const isFiltered =
@@ -286,24 +333,20 @@ export class PluginManagerView extends ItemView {
 			settings.updatesOnly;
 
 		if (isFiltered) {
-			const resetBtn = criteriaRow.createEl("button", {
-				cls: "pms-chip pms-chip-reset",
-				attr: { type: "button", title: "Reset all active filters" },
-			});
-			resetBtn.createSpan({ text: "✕ Reset" });
-			resetBtn.addEventListener("click", () => {
-				settings.sourceFilter = "all";
-				settings.stateFilter = "all";
-				settings.pinnedOnly = false;
-				settings.updatesOnly = false;
-				void this.plugin.saveSettings();
-				this.render();
-			});
+			this.addChip(
+				criteriaRow,
+				"✕ Reset",
+				"Reset all active filters",
+				"pms-chip pms-chip-reset",
+				() =>
+					this.updateFilter(() => {
+						settings.sourceFilter = "all";
+						settings.stateFilter = "all";
+						settings.pinnedOnly = false;
+						settings.updatesOnly = false;
+					}),
+			);
 		}
-
-		this.bodyEl = root.createDiv("pms-body");
-		this.renderList();
-		this.bodyEl.scrollTop = scrollTop;
 	}
 
 	iconButton(
@@ -402,7 +445,7 @@ export class PluginManagerView extends ItemView {
 
 			const upRight = upHead.createDiv("pms-section-actions");
 			const upAllBtn = upRight.createEl("button", {
-				text: "Update All",
+				text: "Update all",
 				cls: "mod-cta pms-mini-btn",
 				attr: { type: "button" },
 			});
@@ -447,11 +490,11 @@ export class PluginManagerView extends ItemView {
 			})
 			.sort(sortFn);
 
+		const filteredSet = new Set(filtered);
 		const pinnedSet = new Set(settings.pinned);
 		const pinned = settings.pinned
 			.map((id) => byId.get(id))
-			.filter((plugin): plugin is ManagedPlugin => plugin !== undefined)
-			.filter((plugin) => filtered.includes(plugin))
+			.filter((plugin): plugin is ManagedPlugin => plugin !== undefined && filteredSet.has(plugin))
 			.sort(sortFn);
 
 		let shown = 0;
@@ -472,8 +515,7 @@ export class PluginManagerView extends ItemView {
 
 				const members = group.plugins
 					.map((id) => byId.get(id))
-					.filter((plugin): plugin is ManagedPlugin => plugin !== undefined)
-					.filter((plugin) => filtered.includes(plugin))
+					.filter((plugin): plugin is ManagedPlugin => plugin !== undefined && filteredSet.has(plugin))
 					.sort(sortFn);
 
 				if (members.length > 0) {
@@ -486,13 +528,11 @@ export class PluginManagerView extends ItemView {
 			}
 
 			if (selected === "all" || selected === "_ungrouped") {
-				const ungrouped = filtered
-					.filter(
-						(plugin) =>
-							!grouped.has(plugin.id) &&
-							(settings.pinnedOnly || !pinnedSet.has(plugin.id)),
-					)
-					.sort(sortFn);
+				const ungrouped = filtered.filter(
+					(plugin) =>
+						!grouped.has(plugin.id) &&
+						(settings.pinnedOnly || !pinnedSet.has(plugin.id)),
+				);
 
 				if (ungrouped.length > 0) {
 					this.addSection("Other Plugins", ungrouped);
@@ -602,7 +642,8 @@ export class PluginManagerView extends ItemView {
 		});
 
 		const line1 = row.createDiv("pms-line1");
-		const nameWrap = line1.createDiv("pms-name-wrap");			nameWrap.createSpan({ text: plugin.name, cls: "pms-name" });
+		const nameWrap = line1.createDiv("pms-name-wrap");
+		nameWrap.createSpan({ text: plugin.name, cls: "pms-name" });
 		if (isSelf) nameWrap.createSpan({ text: "Self", cls: "pms-tag" });
 
 		const line1Right = line1.createDiv("pms-line1-right");
@@ -636,7 +677,7 @@ export class PluginManagerView extends ItemView {
 			event.preventDefault();
 			event.stopPropagation();
 			if (isSelf) {
-				new Notice("Plugin Manager cannot disable itself from this view.");
+				new Notice("Plugin manager cannot disable itself from this view.");
 				return;
 			}
 			manager.safe(() => manager.togglePlugin(plugin), "toggle");
@@ -765,13 +806,13 @@ export class PluginManagerView extends ItemView {
 		if (plugin.isLocal && !plugin.isCore) {
 			menu.addItem((item) =>
 				item
-					.setTitle("Reveal in Explorer")
+					.setTitle("Reveal in explorer")
 					.setIcon("folder")
 					.onClick(() => manager.revealInExplorer(plugin.id)),
 			);
 			menu.addItem((item) =>
 				item
-					.setTitle("Touch / Add .hotreload")
+					.setTitle("Touch / add .hotreload")
 					.setIcon("flame")
 					.onClick(() =>
 						manager.safe(() => manager.toggleHotReload(plugin), "hot reload"),
