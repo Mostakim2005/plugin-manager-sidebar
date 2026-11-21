@@ -1,6 +1,6 @@
 {
     "name":  "plugin-manager-sidebar",
-    "version":  "2.1.1",
+    "version":  "2.1.2",
     "description":  "A sidebar to search, enable, disable, pin, group and uninstall community plugins, with update checks and non-destructive metadata overrides.",
     "main":  "main.js",
     "type":  "module",
