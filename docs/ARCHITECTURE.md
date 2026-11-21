@@ -64,9 +64,9 @@ flowchart TB
 ## 3. Module Responsibilities
 ### [SUBSYSTEM: Entry-And-Actions] | Aliases: main.ts, onload, exclusive, safe
 > **1-Line Summary:** `main.ts` owns lifecycle, every plugin action, host adapters, and the public helpers the view calls.
-* **Owns:** loading and saving settings, registry fetch, hot-reload scan, update checks, enable/disable, group bulk actions, uninstall, settings shortcuts, group editor.
+* **Owns:** loading and saving settings, registry fetch, hot-reload scan, update checks, enable/disable, group bulk actions, uninstall, settings shortcuts, group editor, and plugin page / repository resolution.
 * **Must not:** build DOM for the sidebar or dialogs; it exposes actions and state only.
-* **Code Anchors (Grep Targets):** `src/main.ts` -> `onload`, `exclusive`, `safe`, `togglePlugin`, `bulkGroup`, `openGroupEditor`
+* **Code Anchors (Grep Targets):** `src/main.ts` -> `onload`, `exclusive`, `safe`, `togglePlugin`, `bulkGroup`, `openGroupEditor`, `resolvePluginRepoUrl`, `openPluginPage`, `openPluginRepo`
 
 ### [SUBSYSTEM: Sidebar-View] | Aliases: plugin-manager-view.ts, render, buildList, addRow
 > **1-Line Summary:** The `ItemView` that draws the header controls, stats bar, updates section, pinned section, and filtered rows.
@@ -81,10 +81,10 @@ flowchart TB
 * **Code Anchors (Grep Targets):** `src/utils/workspace.ts` -> `SidebarController`, `attachRibbon`, `activate`, `toggle`, `syncRibbonState`, `getPrimaryLeaf`
 
 ### [SUBSYSTEM: Settings-Sanitizer] | Aliases: utils/settings.ts, sanitizeSettings, defaults
-> **1-Line Summary:** Validates any stored blob into the exact v7 settings shape, including groups, overrides, and filter enums.
-* **Owns:** allowed enum values, plugin-id filtering, prototype-pollution keys, override length caps, group id uniqueness.
+> **1-Line Summary:** Validates any stored blob into the exact v7 settings shape, including groups, overrides, filter enums, and GitHub owner.
+* **Owns:** allowed enum values, plugin-id filtering, prototype-pollution keys, override length caps, group id uniqueness, URL sanitization (`sanitizeHttpUrl`), and GitHub username sanitization (`sanitizeGithubOwner`).
 * **Must not:** read files or call Obsidian; it is a pure function over `unknown`.
-* **Code Anchors (Grep Targets):** `src/utils/settings.ts` -> `sanitizeSettings`, `overrideList`, `groupList`
+* **Code Anchors (Grep Targets):** `src/utils/settings.ts` -> `sanitizeSettings`, `overrideList`, `groupList`, `sanitizeGithubOwner`, `sanitizeHttpUrl`
 
 ### [SUBSYSTEM: Format-Helpers] | Aliases: utils/format.ts, sorters, semver, ids
 > **1-Line Summary:** Shared constants plus id sanitation, sort comparators, semver comparison, and error formatting.
@@ -120,10 +120,12 @@ flowchart TB
   "sortBy": "status",
   "glassmorphism": true,
   "autoCheckUpdates": true,
-  "overrides": { "dataview": { "name": "Data", "description": "…" } }
+  "defaultGithubOwner": "Mostakim2005",
+  "overrides": { "dataview": { "name": "Data", "description": "…", "repoUrl": "https://github.com/blacksmithgu/obsidian-dataview" } }
 }
 ```
-* `overrides` is keyed by sanitized plugin id and capped at 100/100/500 characters.
+* `overrides` is keyed by sanitized plugin id and capped at 100/100/500 characters, with optional sanitized `repoUrl`.
+* `defaultGithubOwner` configures the GitHub username/organization used for building fallback repo URLs for local plugins.
 * `groups` keeps ids even when a member plugin is not currently installed, so a temporarily missing plugin is not silently dropped.
 * Unknown keys are discarded on the next save; there is no forward-compatibility promise beyond `version`.
 

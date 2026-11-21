@@ -13,6 +13,7 @@ export interface PluginManagerSettings {
 	sortBy: SortBy;
 	glassmorphism: boolean;
 	autoCheckUpdates: boolean;
+	defaultGithubOwner: string;
 	overrides: Record<string, PluginOverride>;
 }
 
@@ -33,6 +34,7 @@ export interface PluginOverride {
 	name?: string;
 	author?: string;
 	description?: string;
+	repoUrl?: string;
 }
 
 /** One row in the sidebar, community or core. */
@@ -70,4 +72,5 @@ export interface PluginManifestLike {
 	description?: string;
 	version?: string;
 	author?: string;
+	authorUrl?: string;
 }

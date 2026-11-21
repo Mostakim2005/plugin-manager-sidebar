@@ -132,3 +132,64 @@ flowchart TD
 * **Code Anchors (Grep Targets):**
   * `src/utils/workspace.ts` -> `SidebarController`, `toggle`, `activate`, `getPrimaryLeaf`, `syncRibbonState`
   * `src/main.ts` -> `toggleView`, `activateView`, `sidebar`
+
+---
+
+### [VISUAL: Plugin-Community-Page-And-Repository-Resolution-Flow] | Aliases: repo resolution, community page, github links, show-plugin
+> **1-Line Summary:** How Plugin Manager Sidebar navigates to an official plugin's directory entry or resolves its GitHub repository through a hierarchical cascade.
+
+* **Plain-English Walkthrough:** Clicking the Compass action on an official plugin opens Obsidian's internal directory modal (`obsidian://show-plugin?id=<id>`), or guides the user to settings if restricted mode is enabled. Clicking the GitHub action on any plugin resolves a repository URL through a 4-tier hierarchy: (1) user override URL, (2) official registry repo name, (3) manifest `authorUrl` GitHub matching, and (4) default GitHub owner + slug fallback. The resolved URL opens safely in an external browser tab.
+
+```mermaid
+flowchart TD
+    %% Color Definitions (Obsidian & GitHub compatible)
+    classDef startNode fill:#1d4ed8,stroke:#1e3a8a,color:#ffffff
+    classDef processNode fill:#0f766e,stroke:#115e59,color:#ffffff
+    classDef outputNode fill:#15803d,stroke:#14532d,color:#ffffff
+    classDef trapNode fill:#b91c1c,stroke:#7f1d1d,color:#ffffff
+
+    Start([User clicks Compass or GitHub button in row/menu]):::startNode --> ActionType{Which button was clicked?}:::processNode
+
+    ActionType -->|Compass / Community Page| OfficialCheck{Is plugin official community?}:::processNode
+    ActionType -->|GitHub / Repo Link| ResolveRepo[Call resolvePluginRepoUrl]:::processNode
+
+    OfficialCheck -->|Yes| RestrictCheck{Is restricted mode active?}:::processNode
+    OfficialCheck -->|No - Local| ResolveRepo
+
+    RestrictCheck -->|Yes - Restricted| RestrictTrap[Show Notice & open Community Plugins settings]:::trapNode
+    RestrictCheck -->|No| OpenUri([Open obsidian://show-plugin?id=...]):::outputNode
+
+    ResolveRepo --> OverrideCheck{Custom repoUrl in overrides?}:::processNode
+    OverrideCheck -->|Yes| UseOverride[Return sanitized override URL]:::processNode
+    OverrideCheck -->|No| RegCheck{Official repo found in registry map?}:::processNode
+
+    RegCheck -->|Yes| UseReg[Return github.com/owner/repo]:::processNode
+    RegCheck -->|No| ManifestCheck{Manifest authorUrl is GitHub?}:::processNode
+
+    ManifestCheck -->|Yes| ParseAuthor[Extract owner/repo or owner + slug]:::processNode
+    ManifestCheck -->|No| OwnerCheck{defaultGithubOwner set in settings?}:::processNode
+
+    OwnerCheck -->|Yes| UseOwner[Return github.com/defaultOwner/slug]:::processNode
+    OwnerCheck -->|No| FallbackAuth{Raw authorUrl exists?}:::processNode
+
+    FallbackAuth -->|Yes| UseAuth[Return sanitized authorUrl]:::processNode
+    FallbackAuth -->|No| NoUrlTrap[Show Notice: No repository URL configured]:::trapNode
+
+    UseOverride --> OpenBrowser([window.open URL in external browser]):::outputNode
+    UseReg --> OpenBrowser
+    ParseAuthor --> OpenBrowser
+    UseOwner --> OpenBrowser
+    UseAuth --> OpenBrowser
+
+    subgraph Legend["Legend (Color Guide)"]
+        L1([Blue = User Trigger / Entry Point]):::startNode
+        L2[Teal = URL Resolution & Routing Step]:::processNode
+        L3([Green = Successful Navigation Outcome]):::outputNode
+        L4[Red = Restricted Mode / Missing Link Guard]:::trapNode
+    end
+```
+
+* **Code Anchors (Grep Targets):**
+  * `src/main.ts` -> `openPluginPage`, `openPluginRepo`, `resolvePluginRepoUrl`
+  * `src/views/plugin-manager-view.ts` -> `iconButton`, `openMenu`
+  * `src/utils/settings.ts` -> `sanitizeGithubOwner`, `sanitizeHttpUrl`

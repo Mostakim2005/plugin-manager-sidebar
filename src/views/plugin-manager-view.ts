@@ -661,6 +661,15 @@ export class PluginManagerView extends ItemView {
 
 		const actions = row.createDiv("pms-row-actions");
 
+		if (!plugin.isCore) {
+			this.iconButton(
+				actions,
+				plugin.isOfficial ? "compass" : "github",
+				plugin.isOfficial ? "Open community plugin page" : "Open GitHub repository",
+				() => manager.safe(() => manager.openPluginPage(plugin), "open plugin page"),
+			);
+		}
+
 		if (plugin.isLocal && !plugin.isCore) {
 			const hotBtn = this.iconButton(actions, "flame", "Hot Restart (.hotreload)", () =>
 				manager.safe(() => manager.toggleHotReload(plugin), "hot reload"),
@@ -727,6 +736,31 @@ export class PluginManagerView extends ItemView {
 					).open(),
 				),
 		);
+
+		if (!plugin.isCore) {
+			menu.addItem((item) =>
+				item
+					.setTitle(
+						plugin.isOfficial
+							? "Open community plugin page"
+							: "Open GitHub repository",
+					)
+					.setIcon(plugin.isOfficial ? "compass" : "github")
+					.onClick(() =>
+						manager.safe(() => manager.openPluginPage(plugin), "open plugin page"),
+					),
+			);
+			if (plugin.isOfficial && manager.resolvePluginRepoUrl(plugin)) {
+				menu.addItem((item) =>
+					item
+						.setTitle("Open GitHub repository")
+						.setIcon("github")
+						.onClick(() =>
+							manager.safe(() => manager.openPluginRepo(plugin), "open repository"),
+						),
+				);
+			}
+		}
 
 		if (plugin.isLocal && !plugin.isCore) {
 			menu.addItem((item) =>

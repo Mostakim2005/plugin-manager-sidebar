@@ -21,10 +21,37 @@ export const DEFAULT_SETTINGS: PluginManagerSettings = {
 	sortBy: "status",
 	glassmorphism: true,
 	autoCheckUpdates: true,
+	defaultGithubOwner: "Mostakim2005",
 	overrides: {},
 };
 
 const PLUGIN_ID_RE = /^[a-zA-Z0-9_-]+$/;
+
+const GITHUB_OWNER_RE = /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,38})$/;
+
+export function sanitizeHttpUrl(value: unknown): string | undefined {
+	if (typeof value !== "string") return undefined;
+	const trimmed = value.trim().slice(0, 300);
+	if (!trimmed) return undefined;
+	try {
+		const parsed = new URL(trimmed);
+		if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+			return parsed.toString().replace(/\/+$/, "");
+		}
+	} catch {
+		return undefined;
+	}
+	return undefined;
+}
+
+export function sanitizeGithubOwner(value: unknown): string {
+	if (typeof value !== "string") return "";
+	let candidate = value.trim();
+	if (!candidate) return "";
+	candidate = candidate.replace(/^https?:\/\/(?:www\.)?github\.com\//i, "");
+	candidate = candidate.split("/")[0]?.trim() ?? "";
+	return GITHUB_OWNER_RE.test(candidate) ? candidate : "";
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -65,6 +92,7 @@ function overrideList(value: unknown): Record<string, PluginOverride> {
 			author: typeof raw.author === "string" ? raw.author.slice(0, 100) : undefined,
 			description:
 				typeof raw.description === "string" ? raw.description.slice(0, 500) : undefined,
+			repoUrl: sanitizeHttpUrl(raw.repoUrl),
 		};
 	}
 	return overrides;
@@ -103,6 +131,9 @@ export function sanitizeSettings(raw: unknown): PluginManagerSettings {
 	}
 	if (typeof raw.glassmorphism === "boolean") out.glassmorphism = raw.glassmorphism;
 	if (typeof raw.autoCheckUpdates === "boolean") out.autoCheckUpdates = raw.autoCheckUpdates;
+	if (typeof raw.defaultGithubOwner === "string") {
+		out.defaultGithubOwner = sanitizeGithubOwner(raw.defaultGithubOwner);
+	}
 
 	out.version = SETTINGS_VERSION;
 	return out;

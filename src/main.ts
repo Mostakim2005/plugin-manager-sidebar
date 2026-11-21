@@ -36,7 +36,7 @@ import type {
 	ElectronShellApi,
 	PluginManagerApi,
 } from "./utils/obsidian-internals";
-import { sanitizeSettings } from "./utils/settings";
+import { sanitizeGithubOwner, sanitizeHttpUrl, sanitizeSettings } from "./utils/settings";
 import { SidebarController } from "./utils/workspace";
 import { PluginManagerView } from "./views/plugin-manager-view";
 
@@ -60,6 +60,7 @@ export default class PluginManagerSidebar extends Plugin {
 	private busy = false;
 	private saveChain: Promise<void> = Promise.resolve();
 	private officialIds = new Set<string>();
+	private officialRepos = new Map<string, string>();
 	registryLoaded = false;
 	private hotReloadCache = new Set<string>();
 	private readonly sidebar = new SidebarController(this.app);
@@ -445,6 +446,81 @@ export default class PluginManagerSidebar extends Plugin {
 		}
 	}
 
+
+	/* ---------- plugin pages & repositories ---------- */
+
+	private toKebabSlug(value: string): string {
+		return value
+			.trim()
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, "-")
+			.replace(/^-+|-+$/g, "");
+	}
+
+	resolvePluginRepoUrl(plugin: ManagedPlugin): string | null {
+		if (plugin.isCore) return null;
+
+		const customUrl = sanitizeHttpUrl(this.settings.overrides[plugin.id]?.repoUrl);
+		if (customUrl) return customUrl;
+
+		if (plugin.isOfficial) {
+			const officialRepo = this.officialRepos.get(plugin.id);
+			if (officialRepo) return `https://github.com/${officialRepo}`;
+		}
+
+		const slug = this.toKebabSlug(plugin.id);
+		const manifestAuthorUrl = sanitizeHttpUrl(this.pm?.manifests?.[plugin.id]?.authorUrl);
+		if (manifestAuthorUrl) {
+			try {
+				const parsed = new URL(manifestAuthorUrl);
+				if (parsed.hostname.toLowerCase() === "github.com") {
+					const segments = parsed.pathname.split("/").filter(Boolean);
+					if (segments.length >= 2) {
+						return `https://github.com/${segments[0]}/${segments[1]}`;
+					}
+					if (segments.length === 1 && slug) {
+						return `https://github.com/${segments[0]}/${slug}`;
+					}
+				}
+			} catch {
+				/* fall through to default GitHub owner */
+			}
+		}
+
+		const defaultOwner = sanitizeGithubOwner(this.settings.defaultGithubOwner);
+		if (defaultOwner && slug) {
+			return `https://github.com/${defaultOwner}/${slug}`;
+		}
+
+		return manifestAuthorUrl ?? null;
+	}
+
+	openPluginRepo(plugin: ManagedPlugin): void {
+		const url = this.resolvePluginRepoUrl(plugin);
+		if (!url) {
+			new Notice(`No repository URL configured for "${plugin.name}".`);
+			return;
+		}
+		window.open(url, "_blank", "noopener");
+	}
+
+	openPluginPage(plugin: ManagedPlugin): void {
+		if (plugin.isCore) return;
+
+		if (plugin.isOfficial) {
+			if (!this.communityEnabled()) {
+				new Notice("Restricted mode is active. Enable community plugins in settings first.");
+				this.internals.setting?.open?.();
+				this.internals.setting?.openTabById?.("community-plugins");
+				return;
+			}
+			window.open(`obsidian://show-plugin?id=${encodeURIComponent(plugin.id)}`);
+			return;
+		}
+
+		this.openPluginRepo(plugin);
+	}
+
 	/* ---------- community updates ---------- */
 
 	async fetchOfficialRegistry(): Promise<void> {
@@ -452,11 +528,17 @@ export default class PluginManagerSidebar extends Plugin {
 			const res = await requestUrl({ url: COMMUNITY_REGISTRY_URL, method: "GET" });
 			if (res.status === 200 && Array.isArray(res.json)) {
 				const entries = res.json as Array<Record<string, unknown>>;
-				this.officialIds = new Set(
-					entries
-						.map((entry) => entry.id)
-						.filter((id): id is string => typeof id === "string"),
-				);
+				const ids = new Set<string>();
+				const repos = new Map<string, string>();
+				for (const entry of entries) {
+					if (typeof entry.id !== "string") continue;
+					ids.add(entry.id);
+					if (typeof entry.repo === "string" && /^[^/]+\/[^/]+$/.test(entry.repo.trim())) {
+						repos.set(entry.id, entry.repo.trim());
+					}
+				}
+				this.officialIds = ids;
+				this.officialRepos = repos;
 				this.registryLoaded = true;
 			}
 		} catch (error) {

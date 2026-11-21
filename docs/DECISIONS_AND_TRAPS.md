@@ -142,6 +142,17 @@ flowchart LR
   * `src/utils/workspace.ts` -> `SidebarController`, `toggle`, `activate`, `getPrimaryLeaf`, `syncRibbonState`
   * `src/main.ts` -> `toggleView`, `activateView`, `sidebar`
 
+### [DECISION: Hierarchical-Plugin-Repository-Resolution] | Aliases: resolvePluginRepoUrl, fallback owner, repoUrl override, community URI
+> **1-Line Summary:** Plugin repository links resolve via a deterministic fallback chain: custom override -> official registry repo -> manifest authorUrl -> default GitHub owner.
+* **Decision Maker:** `[DECIDED BY: AGENT]`
+* **Original User Intention:** Provide reliable GitHub navigation for both official and local plugins without requiring manual link entry for every plugin.
+* **Options Considered:**
+  * **Option A (Rejected):** Only open links when an explicit URL is found in the local `manifest.json`. Many local development plugins omit repository fields, resulting in broken or disabled buttons.
+  * **Option B (Chosen):** Resolve hierarchically: check `settings.overrides[id].repoUrl` first; for official plugins look up `officialRepos` (from `community-plugins.json`); parse `authorUrl` on the manifest if it points to GitHub; fallback to `settings.defaultGithubOwner` + kebab-slug of plugin id.
+* **Code Anchors (Grep Targets):**
+  * `src/main.ts` -> `resolvePluginRepoUrl`, `toKebabSlug`, `officialRepos`
+  * `src/utils/settings.ts` -> `sanitizeGithubOwner`, `sanitizeHttpUrl`
+
 ## 2. Landmines & Hard-Won Traps
 
 ### [TRAP: Host-Internals-Are-Optional] | Aliases: app.plugins undefined, restricted mode, mobile

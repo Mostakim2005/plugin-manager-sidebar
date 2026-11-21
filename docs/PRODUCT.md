@@ -133,6 +133,16 @@
   * `src/main.ts` -> `toggleView`, `activateView`, `SidebarController`
   * `src/utils/workspace.ts` -> `SidebarController.toggle`, `SidebarController.syncRibbonState`
 
+### [FEATURE: Community-Page-And-GitHub-Links] | Aliases: open plugin page, github link, repository url, defaultGithubOwner
+> **1-Line Summary:** One-click row buttons and context menu items open an official plugin's Obsidian directory page or navigate to its GitHub repository.
+* **User Intention (Non-Negotiable):** Users should be able to view documentation, release notes, or repository code with one click directly from each row without manually searching GitHub or the community browser.
+* **Visual / UI Behavior:** Official plugins feature a compass icon linking directly to `obsidian://show-plugin?id=<id>`, plus a context menu link to their GitHub repository. Local plugins feature a GitHub icon opening their repository, with editable repo URL overrides in the manifest modal and configurable fallback owner in settings.
+* **Code Anchors (Grep Targets):**
+  * `src/main.ts` -> `openPluginPage`, `openPluginRepo`, `resolvePluginRepoUrl`
+  * `src/views/plugin-manager-view.ts` -> `iconButton`, `openMenu`
+  * `src/modals/manifest-edit-modal.ts` -> `ManifestEditModal.onOpen`
+  * `src/settings-tab.ts` -> `PluginManagerSettingTab.display`
+
 ## 3. Explicit Non-Goals
 * No custom plugin installer, registry mirror, or download cache.
 * No editing of official plugin source or manifests.

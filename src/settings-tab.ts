@@ -1,6 +1,7 @@
 import { PluginSettingTab, Setting, type App } from "obsidian";
 import type PluginManagerSidebar from "./main";
 import type { PluginScope, PluginViewMode, SortBy } from "./types";
+import { sanitizeGithubOwner } from "./utils/settings";
 
 export class PluginManagerSettingTab extends PluginSettingTab {
 	constructor(
@@ -87,6 +88,21 @@ export class PluginManagerSettingTab extends PluginSettingTab {
 					this.plugin.settings.autoCheckUpdates = value;
 					await this.plugin.saveSettings();
 				}),
+			);
+
+		new Setting(containerEl)
+			.setName("Default GitHub owner")
+			.setDesc(
+				"GitHub username or organization used to build repository links for local plugins.",
+			)
+			.addText((text) =>
+				text
+					.setPlaceholder("Mostakim2005")
+					.setValue(this.plugin.settings.defaultGithubOwner)
+					.onChange(async (value) => {
+						this.plugin.settings.defaultGithubOwner = sanitizeGithubOwner(value);
+						await this.plugin.saveSettings();
+					}),
 			);
 	}
 }

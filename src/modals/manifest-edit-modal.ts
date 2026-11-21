@@ -2,6 +2,7 @@ import { Modal, Notice, type App } from "obsidian";
 import type PluginManagerSidebar from "../main";
 import type { ManagedPlugin } from "../types";
 import { errMsg, logError } from "../utils/format";
+import { sanitizeHttpUrl } from "../utils/settings";
 
 export class ManifestEditModal extends Modal {
 	constructor(
@@ -53,6 +54,22 @@ export class ManifestEditModal extends Modal {
 		const descInput = contentEl.createEl("textarea", { cls: "pms-modal-textarea" });
 		descInput.value = this.target.description;
 
+		let repoInput: HTMLInputElement | null = null;
+		if (this.isLocal) {
+			contentEl.createEl("label", {
+				text: "Repository URL (optional)",
+				cls: "pms-modal-label",
+			});
+			const savedRepo = this.pluginManager.settings.overrides[this.target.id]?.repoUrl ?? "";
+			const fallbackRepo = this.pluginManager.resolvePluginRepoUrl(this.target) ?? "";
+			repoInput = contentEl.createEl("input", {
+				type: "url",
+				cls: "pms-modal-input",
+				value: savedRepo,
+				placeholder: fallbackRepo || "https://github.com/owner/plugin-id",
+			});
+		}
+
 		const row = contentEl.createDiv("modal-button-container");
 
 		if (!this.isLocal && this.pluginManager.settings.overrides[this.target.id]) {
@@ -87,17 +104,43 @@ export class ManifestEditModal extends Modal {
 			save.disabled = true;
 			try {
 				if (this.isLocal) {
+					const rawRepo = repoInput?.value.trim() ?? "";
+					const cleanRepo = sanitizeHttpUrl(rawRepo);
+					if (rawRepo && !cleanRepo) {
+						new Notice("Enter a valid repository URL.");
+						return;
+					}
 					await this.pluginManager.saveLocalManifest(
 						this.target.id,
 						newName,
 						newAuthor,
 						newDesc,
 					);
+					const existingOverride = this.pluginManager.settings.overrides[this.target.id];
+					if (cleanRepo) {
+						this.pluginManager.settings.overrides[this.target.id] = {
+							...existingOverride,
+							repoUrl: cleanRepo,
+						};
+						await this.pluginManager.saveSettings();
+					} else if (existingOverride?.repoUrl) {
+						delete existingOverride.repoUrl;
+						if (
+							!existingOverride.name &&
+							!existingOverride.author &&
+							!existingOverride.description
+						) {
+							delete this.pluginManager.settings.overrides[this.target.id];
+						}
+						await this.pluginManager.saveSettings();
+					}
 				} else {
+					const existingRepo = this.pluginManager.settings.overrides[this.target.id]?.repoUrl;
 					this.pluginManager.settings.overrides[this.target.id] = {
 						name: newName,
 						author: newAuthor,
 						description: newDesc,
+						...(existingRepo ? { repoUrl: existingRepo } : {}),
 					};
 					await this.pluginManager.saveSettings();
 				}
