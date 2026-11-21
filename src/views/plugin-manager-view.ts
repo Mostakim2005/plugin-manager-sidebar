@@ -34,6 +34,8 @@ const STATE_LABELS: Record<StateFilter, string> = {
 
 export class PluginManagerView extends ItemView {
 	private query = "";
+	private searchInputEl: HTMLInputElement | null = null;
+	private searchClearEl: HTMLButtonElement | null = null;
 	private topActionsEl: HTMLElement | null = null;
 	private controlsEl: HTMLElement | null = null;
 	private bodyEl: HTMLElement | null = null;
@@ -78,6 +80,8 @@ export class PluginManagerView extends ItemView {
 			window.clearTimeout(this.searchTimeout);
 			this.searchTimeout = null;
 		}
+		this.searchInputEl = null;
+		this.searchClearEl = null;
 		this.topActionsEl = null;
 		this.controlsEl = null;
 		this.bodyEl = null;
@@ -101,22 +105,38 @@ export class PluginManagerView extends ItemView {
 				cls: "pms-search-input",
 				attr: { "aria-label": "Search installed and core plugins" },
 			});
+			const clearBtn = searchWrap.createEl("button", {
+				cls: "pms-search-clear",
+				attr: { type: "button", "aria-label": "Clear search", title: "Clear search" },
+			});
+			setIcon(clearBtn, "x");
+			const syncClear = (): void => {
+				clearBtn.toggleClass("is-visible", this.query.length > 0);
+			};
+			const clearSearch = (): void => {
+				input.value = "";
+				this.query = "";
+				syncClear();
+				if (this.searchTimeout !== null) window.clearTimeout(this.searchTimeout);
+				this.renderList();
+				input.focus();
+			};
+			clearBtn.addEventListener("click", clearSearch);
 			input.value = this.query;
+			syncClear();
 			input.addEventListener("input", () => {
 				this.query = input.value;
+				syncClear();
 				if (this.searchTimeout !== null) window.clearTimeout(this.searchTimeout);
 				this.searchTimeout = window.setTimeout(() => {
 					this.renderList();
 				}, 150);
 			});
 			input.addEventListener("keydown", (event) => {
-				if (event.key === "Escape") {
-					input.value = "";
-					this.query = "";
-					if (this.searchTimeout !== null) window.clearTimeout(this.searchTimeout);
-					this.renderList();
-				}
+				if (event.key === "Escape") clearSearch();
 			});
+			this.searchInputEl = input;
+			this.searchClearEl = clearBtn;
 
 			this.topActionsEl = top.createDiv("pms-top-actions");
 			this.controlsEl = header.createDiv("pms-controls");
@@ -126,7 +146,13 @@ export class PluginManagerView extends ItemView {
 		this.renderTopActions();
 		this.renderControlRows();
 		this.renderList();
+		this.searchClearEl?.toggleClass("is-visible", this.query.length > 0);
 		this.bodyEl.scrollTop = scrollTop;
+	}
+
+	focusSearch(): void {
+		this.searchInputEl?.focus();
+		this.searchInputEl?.select();
 	}
 
 	private addChip(
@@ -183,8 +209,11 @@ export class PluginManagerView extends ItemView {
 
 		this.iconButton(topActions, "refresh-cw", "Refresh list", () => {
 			void (async (): Promise<void> => {
-				await this.plugin.fetchOfficialRegistry();
-				this.renderList();
+				await Promise.all([
+					this.plugin.fetchOfficialRegistry(),
+					this.plugin.scanHotReloadFiles(),
+				]);
+				this.render();
 			})();
 		});
 	}
@@ -407,22 +436,70 @@ export class PluginManagerView extends ItemView {
 		const updates = this.plugin.getAvailableUpdates();
 		const updateCount = updates.length;
 
+		const { sections, shown } = filterAndBucketPlugins(
+			all,
+			settings,
+			this.query,
+			(id) => this.plugin.getUpdatesRecord(id),
+		);
+
 		const enabledCount = all.filter((plugin) => plugin.enabled).length;
 		const disabledCount = all.length - enabledCount;
 		const statsBar = body.createDiv("pms-stats-bar");
-		statsBar.createSpan({ text: `Total: ${all.length}`, cls: "pms-stat-pill" });
-		statsBar.createSpan({
-			text: `Active: ${enabledCount}`,
-			cls: "pms-stat-pill is-active",
-		});
-		statsBar.createSpan({
-			text: `Inactive: ${disabledCount}`,
-			cls: "pms-stat-pill is-inactive",
-		});
+
+		const addStatBtn = (
+			text: string,
+			cls: string,
+			title: string,
+			onClick: () => void,
+		): void => {
+			const pill = statsBar.createEl("button", {
+				text,
+				cls: `pms-stat-pill pms-stat-btn ${cls}`.trim(),
+				attr: { type: "button", title },
+			});
+			pill.addEventListener("click", onClick);
+		};
+
+		addStatBtn(`Total: ${all.length}`, "", "Show all states", () =>
+			this.updateFilter(() => {
+				settings.stateFilter = "all";
+				settings.updatesOnly = false;
+			}),
+		);
+		addStatBtn(
+			`Active: ${enabledCount}`,
+			`is-active ${settings.stateFilter === "enabled" ? "is-selected" : ""}`,
+			"Toggle enabled filter",
+			() =>
+				this.updateFilter(() => {
+					settings.stateFilter = settings.stateFilter === "enabled" ? "all" : "enabled";
+				}),
+		);
+		addStatBtn(
+			`Inactive: ${disabledCount}`,
+			`is-inactive ${settings.stateFilter === "disabled" ? "is-selected" : ""}`,
+			"Toggle disabled filter",
+			() =>
+				this.updateFilter(() => {
+					settings.stateFilter = settings.stateFilter === "disabled" ? "all" : "disabled";
+				}),
+		);
 		if (updateCount > 0) {
+			addStatBtn(
+				`Updates: ${updateCount}`,
+				`is-update ${settings.updatesOnly ? "is-selected" : ""}`,
+				"Toggle updates filter",
+				() =>
+					this.updateFilter(() => {
+						settings.updatesOnly = !settings.updatesOnly;
+					}),
+			);
+		}
+		if (shown < all.length) {
 			statsBar.createSpan({
-				text: `Updates: ${updateCount}`,
-				cls: "pms-stat-pill is-update",
+				text: `Showing ${shown} of ${all.length}`,
+				cls: "pms-stat-pill pms-stat-showing",
 			});
 		}
 
@@ -457,13 +534,6 @@ export class PluginManagerView extends ItemView {
 				this.addUpdateRow(upList, item);
 			}
 		}
-
-		const { sections, shown } = filterAndBucketPlugins(
-			all,
-			settings,
-			this.query,
-			(id) => this.plugin.getUpdatesRecord(id),
-		);
 
 		for (const section of sections) {
 			this.addSection(
@@ -605,7 +675,25 @@ export class PluginManagerView extends ItemView {
 		});
 
 		const meta = row.createDiv("pms-meta");
-		meta.createSpan({ text: plugin.id, cls: "pms-id" });
+		const idEl = meta.createSpan({
+			text: plugin.id,
+			cls: "pms-id pms-id-copyable",
+			attr: { title: "Click to copy plugin ID", role: "button", tabindex: "0" },
+		});
+		const copyId = (event: Event): void => {
+			event.stopPropagation();
+			void navigator.clipboard.writeText(plugin.id).then(
+				() => new Notice(`Copied "${plugin.id}".`),
+				() => new Notice("Could not copy plugin ID."),
+			);
+		};
+		idEl.addEventListener("click", copyId);
+		idEl.addEventListener("keydown", (event) => {
+			if (event.key === "Enter" || event.key === " ") {
+				event.preventDefault();
+				copyId(event);
+			}
+		});
 		if (plugin.version) {
 			meta.createSpan({ text: `v${plugin.version}`, cls: "pms-version" });
 		}

@@ -193,3 +193,52 @@ flowchart TD
   * `src/main.ts` -> `openPluginPage`, `openPluginRepo`, `resolvePluginRepoUrl`
   * `src/views/plugin-manager-view.ts` -> `iconButton`, `openMenu`
   * `src/utils/settings.ts` -> `sanitizeGithubOwner`, `sanitizeHttpUrl`
+
+---
+
+### [VISUAL: Modular-Architecture-And-Filter-Pipeline-Flow] | Aliases: modular architecture, HostBridge, UpdateService, applyPluginFilters
+> **1-Line Summary:** How user interactions in PluginManagerView flow through the pure filter pipeline and specialized runtime services.
+
+* **Plain-English Walkthrough:** When the sidebar renders or searches, `PluginManagerView` feeds raw inventories through the pure, standalone `applyPluginFilters` pipeline. All mutations and system inquiries route through `PluginManagerSidebar`'s exclusive lock to dedicated sub-services: `HostBridge` guards private Obsidian runtime interfaces, `UpdateService` handles releases and version checks, and `SidebarController` manages workspace docks and leaf lifecycles.
+
+```mermaid
+flowchart TD
+    %% Color Definitions (Obsidian & GitHub compatible)
+    classDef startNode fill:#1d4ed8,stroke:#1e3a8a,color:#ffffff
+    classDef processNode fill:#0f766e,stroke:#115e59,color:#ffffff
+    classDef outputNode fill:#15803d,stroke:#14532d,color:#ffffff
+    classDef trapNode fill:#b91c1c,stroke:#7f1d1d,color:#ffffff
+
+    Start([User interacts with PluginManagerView]):::startNode --> ActionKind{Type of action?}:::processNode
+
+    ActionKind -->|Filter / Search / Sort| FilterCall[Call applyPluginFilters: pure function]:::processNode
+    FilterCall --> TokenMatch[Apply text tokens across name, id, author, description]:::processNode
+    TokenMatch --> FilterState[Apply state, source, pinned, and scope filters]:::processNode
+    FilterState --> RenderOutput([Render grouped/sorted sections in View]):::outputNode
+
+    ActionKind -->|Toggle / Uninstall / HotReload| MutexCheck{Exclusive lock acquired?}:::processNode
+    MutexCheck -->|No| BusyTrap[Show Notice: Manager is busy]:::trapNode
+    MutexCheck -->|Yes| HostCall[Dispatch to HostBridge adapter]:::processNode
+
+    HostCall --> GuardCheck{Defensive typeof check on host API}:::processNode
+    GuardCheck -->|Missing / Unsupported| ThrowErr[Gracefully catch & report notice]:::trapNode
+    GuardCheck -->|Supported| ExecuteHost[Invoke Obsidian runtime & verify state]:::processNode
+    ExecuteHost --> ViewRefresh([refreshViews: Re-render with preserved scroll]):::outputNode
+
+    ActionKind -->|Update Check / App Release| UpdateCall[Dispatch to UpdateService]:::processNode
+    UpdateCall --> UpdateFetch[Fetch community-plugins.json / desktop-releases.json]:::processNode
+    UpdateFetch --> UpdateModal([Surface AppUpdateModal or populate update rows]):::outputNode
+
+    subgraph Legend["Legend (Color Guide)"]
+        L1([Blue = User Action / Entry Point]):::startNode
+        L2[Teal = Pure Pipeline / Service Execution Step]:::processNode
+        L3([Green = Successful Render / Action Completion]):::outputNode
+        L4[Red = Mutex Busy / Defensive Guard Node]:::trapNode
+    end
+```
+
+* **Code Anchors (Grep Targets):**
+  * `src/views/plugin-filter.ts` -> `applyPluginFilters`
+  * `src/services/host-bridge.ts` -> `HostBridge`
+  * `src/services/update-service.ts` -> `UpdateService`
+  * `src/main.ts` -> `exclusive`, `safe`

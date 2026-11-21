@@ -739,3 +739,104 @@ body:not(.pms-glassmorphic) {
   color: var(--text-muted);
   margin: 4px 0 6px;
 }
+
+/* ---------- QoL enhancements ---------- */
+
+.pms-search-wrap {
+	position: relative;
+}
+
+.pms-search-wrap .pms-search-input {
+	padding-right: 26px;
+}
+
+.pms-search-clear {
+	position: absolute;
+	right: 6px;
+	top: 50%;
+	transform: translateY(-50%);
+	display: none;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	border: none;
+	border-radius: 50%;
+	background: transparent;
+	color: var(--text-muted);
+	cursor: pointer;
+	box-shadow: none;
+}
+
+.pms-search-clear.is-visible {
+	display: inline-flex;
+}
+
+.pms-search-clear:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-hover);
+}
+
+.pms-stat-btn {
+	border: 1px solid transparent;
+	background: transparent;
+	font: inherit;
+	cursor: pointer;
+	box-shadow: none;
+	transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.pms-stat-btn:hover {
+	border-color: var(--background-modifier-border-hover);
+}
+
+.pms-stat-btn.is-selected {
+	border-color: var(--interactive-accent);
+}
+
+.pms-stat-showing {
+	margin-left: auto;
+	color: var(--text-muted);
+}
+
+.pms-id-copyable {
+	cursor: pointer;
+	transition: color 120ms ease, background-color 120ms ease;
+}
+
+.pms-id-copyable:hover {
+	color: var(--text-normal);
+}
+
+.pms-modal-counter-bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-bottom: 6px;
+}
+
+.pms-modal-counter-bar .pms-modal-hint {
+	margin: 0;
+}
+
+.pms-modal-bulk-links {
+	display: flex;
+	gap: 10px;
+}
+
+.pms-link-btn {
+	padding: 0;
+	border: none;
+	background: transparent;
+	color: var(--text-accent);
+	font-size: 12px;
+	cursor: pointer;
+	box-shadow: none;
+}
+
+.pms-link-btn:hover {
+	text-decoration: underline;
+	background: transparent;
+}

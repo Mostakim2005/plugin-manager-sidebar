@@ -6,6 +6,7 @@
 flowchart TB
     subgraph UI["User Interface"]
         VIEW["PluginManagerView<br/>search · chips · list"]
+        FILTER["applyPluginFilters<br/>pure filter pipeline"]
         GROUP["GroupModal"]
         EDIT["ManifestEditModal"]
         APPUP["AppUpdateModal"]
@@ -16,6 +17,8 @@ flowchart TB
     subgraph CORE["Plugin Core"]
         MAIN["PluginManagerSidebar<br/>actions · safe · exclusive"]
         SIDEBAR["SidebarController<br/>toggle · dedupe · ribbon"]
+        HOSTBRIDGE["HostBridge<br/>plugins · core · vault"]
+        UPDATESVC["UpdateService<br/>checks · installer · app release"]
         SETTINGS["sanitizeSettings<br/>v7 data.json"]
         FORMAT["format helpers<br/>sort · semver · id guard"]
     end
@@ -33,6 +36,7 @@ flowchart TB
         DATA[("data.json<br/>pins · groups · filters<br/>overrides · theme")]
     end
 
+    VIEW --> FILTER
     VIEW --> MAIN
     GROUP --> MAIN
     EDIT --> MAIN
@@ -40,18 +44,22 @@ flowchart TB
     CONFIRM --> MAIN
     ST --> SETTINGS
     MAIN --> SIDEBAR
+    MAIN --> HOSTBRIDGE
+    MAIN --> UPDATESVC
     SIDEBAR --> WS
     SIDEBAR --> VIEW
     MAIN --> SETTINGS
     MAIN --> FORMAT
-    MAIN --> PM
-    MAIN --> COREAPI
-    MAIN --> SETAPI
-    MAIN --> CMD
-    MAIN --> VAULT
+    HOSTBRIDGE --> PM
+    HOSTBRIDGE --> COREAPI
+    HOSTBRIDGE --> SETAPI
+    HOSTBRIDGE --> CMD
+    HOSTBRIDGE --> VAULT
+    UPDATESVC --> PM
+    UPDATESVC --> HOSTBRIDGE
     SETTINGS --> DATA
     MAIN --> DATA
-    VIEW --> PM
+    VIEW --> HOSTBRIDGE
 ```
 
 ## 2. Tech Stack & Why We Chose It
@@ -63,10 +71,28 @@ flowchart TB
 
 ## 3. Module Responsibilities
 ### [SUBSYSTEM: Entry-And-Actions] | Aliases: main.ts, onload, exclusive, safe
-> **1-Line Summary:** `main.ts` owns lifecycle, every plugin action, host adapters, and the public helpers the view calls.
-* **Owns:** loading and saving settings, registry fetch, hot-reload scan, update checks, enable/disable, group bulk actions, uninstall, settings shortcuts, group editor, and plugin page / repository resolution.
-* **Must not:** build DOM for the sidebar or dialogs; it exposes actions and state only.
-* **Code Anchors (Grep Targets):** `src/main.ts` -> `onload`, `exclusive`, `safe`, `togglePlugin`, `bulkGroup`, `openGroupEditor`, `resolvePluginRepoUrl`, `openPluginPage`, `openPluginRepo`
+> **1-Line Summary:** `main.ts` owns lifecycle, orchestrates services, and coordinates user-facing actions.
+* **Owns:** loading and saving settings, registry fetch, hot-reload scan, group bulk actions, and dispatching to `HostBridge`, `UpdateService`, and `SidebarController`.
+* **Must not:** perform raw host internal mutations directly or build DOM for the sidebar; it orchestrates delegated services.
+* **Code Anchors (Grep Targets):** `src/main.ts` -> `onload`, `exclusive`, `safe`, `togglePlugin`, `bulkGroup`, `openGroupEditor`
+
+### [SUBSYSTEM: Host-Bridge] | Aliases: services/host-bridge.ts, HostBridge, raw host adapters
+> **1-Line Summary:** Encapsulates all defensive interactions with Obsidian's internal plugins, community plugins, settings, commands, and vault filesystem.
+* **Owns:** `listPlugins`, `applyEnabled`, `toggleCorePlugin`, `uninstallPlugin`, `saveLocalManifest`, `toggleHotReload`, `revealInExplorer`, and `openCommunityBrowser`.
+* **Must not:** persist plugin settings or manage UI state.
+* **Code Anchors (Grep Targets):** `src/services/host-bridge.ts` -> `HostBridge`, `listPlugins`, `applyEnabled`, `toggleCorePlugin`, `saveLocalManifest`
+
+### [SUBSYSTEM: Update-Service] | Aliases: services/update-service.ts, UpdateService, plugin updates, desktop release
+> **1-Line Summary:** Manages community plugin update checks, batch updates, and Obsidian desktop software update verification.
+* **Owns:** `checkOfficialUpdates`, `getAvailableUpdates`, `updateSinglePlugin`, `updateAllPlugins`, and `checkObsidianSoftwareUpdate`.
+* **Must not:** modify vault files directly; delegates installs to `app.plugins`.
+* **Code Anchors (Grep Targets):** `src/services/update-service.ts` -> `UpdateService`, `checkOfficialUpdates`, `updateAllPlugins`, `checkObsidianSoftwareUpdate`
+
+### [SUBSYSTEM: Pure-Filter-Pipeline] | Aliases: views/plugin-filter.ts, applyPluginFilters, search, criteria
+> **1-Line Summary:** A pure, deterministic function pipeline that transforms an inventory array through search text, source, state, pinned, and sort filters.
+* **Owns:** `applyPluginFilters`, search token matching across name/id/author/description, source/state/pinned filtering, and status/alphabetical sorting.
+* **Must not:** mutate input arrays or reference DOM nodes.
+* **Code Anchors (Grep Targets):** `src/views/plugin-filter.ts` -> `applyPluginFilters`, `matchesQuery`, `sortPlugins`
 
 ### [SUBSYSTEM: Sidebar-View] | Aliases: plugin-manager-view.ts, render, buildList, addRow
 > **1-Line Summary:** The `ItemView` that draws the header controls, stats bar, updates section, pinned section, and filtered rows.

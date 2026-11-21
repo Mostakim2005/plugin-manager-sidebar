@@ -153,6 +153,18 @@ flowchart LR
   * `src/main.ts` -> `resolvePluginRepoUrl`, `toKebabSlug`, `officialRepos`
   * `src/utils/settings.ts` -> `sanitizeGithubOwner`, `sanitizeHttpUrl`
 
+### [DECISION: Lean-Core-Service-Decomposition] | Aliases: HostBridge, UpdateService, plugin-filter, single responsibility
+> **1-Line Summary:** Main plugin class decomposes into specialized services: HostBridge for host runtime, UpdateService for updates, and pure filter pipelines.
+* **Decision Maker:** `[DECIDED BY: AGENT]`
+* **Original User Intention:** Prevent `main.ts` from growing into an unmaintainable monolith mixing UI events, host guards, update polling, and filtering algorithms.
+* **Options Considered:**
+  * **Option A (Rejected):** Accumulate all methods directly inside `PluginManagerSidebar`. Testing or modifying host adapters required touching the main plugin lifecycle class.
+  * **Option B (Chosen):** Extract `HostBridge` (`src/services/host-bridge.ts`), `UpdateService` (`src/services/update-service.ts`), and `applyPluginFilters` (`src/views/plugin-filter.ts`) while keeping `main.ts` as a thin coordinator.
+* **Code Anchors (Grep Targets):**
+  * `src/services/host-bridge.ts` -> `HostBridge`
+  * `src/services/update-service.ts` -> `UpdateService`
+  * `src/views/plugin-filter.ts` -> `applyPluginFilters`
+
 ## 2. Landmines & Hard-Won Traps
 
 ### [TRAP: Host-Internals-Are-Optional] | Aliases: app.plugins undefined, restricted mode, mobile

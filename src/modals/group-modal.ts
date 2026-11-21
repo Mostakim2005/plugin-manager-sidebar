@@ -68,8 +68,22 @@ export class GroupModal extends Modal {
 			catButtons.push(btn);
 		});
 
-		const counter = contentEl.createDiv("pms-modal-hint");
+		const counterBar = contentEl.createDiv("pms-modal-counter-bar");
+		const counter = counterBar.createDiv("pms-modal-hint");
+		const bulkLinks = counterBar.createDiv("pms-modal-bulk-links");
+		const selectVisibleBtn = bulkLinks.createEl("button", {
+			text: "Select visible",
+			cls: "pms-link-btn",
+			attr: { type: "button" },
+		});
+		const clearVisibleBtn = bulkLinks.createEl("button", {
+			text: "Clear visible",
+			cls: "pms-link-btn",
+			attr: { type: "button" },
+		});
+
 		const list = contentEl.createDiv("pms-check-list");
+		let visibleItems: ManagedPlugin[] = [];
 
 		const updateCounter = (): void => {
 			counter.setText(`${this.selected.size} plugins selected`);
@@ -93,6 +107,7 @@ export class GroupModal extends Modal {
 				return true;
 			});
 
+			visibleItems = items;
 			if (items.length === 0) {
 				list.createDiv({ text: "No matching plugins found.", cls: "pms-empty-text" });
 				return;
@@ -118,6 +133,17 @@ export class GroupModal extends Modal {
 			}
 		};
 
+		selectVisibleBtn.addEventListener("click", () => {
+			for (const item of visibleItems) this.selected.add(item.id);
+			updateCounter();
+			renderChecks();
+		});
+		clearVisibleBtn.addEventListener("click", () => {
+			for (const item of visibleItems) this.selected.delete(item.id);
+			updateCounter();
+			renderChecks();
+		});
+
 		search.addEventListener("input", () => {
 			this.filter = search.value;
 			renderChecks();
@@ -135,7 +161,7 @@ export class GroupModal extends Modal {
 		const save = row.createEl("button", { text: "Save group", cls: "mod-cta" });
 		cancel.addEventListener("click", () => this.close());
 
-		save.addEventListener("click", () => {
+		const submit = (): void => {
 			void (async (): Promise<void> => {
 				const name = nameInput.value.trim();
 				if (!name) {
@@ -146,6 +172,13 @@ export class GroupModal extends Modal {
 				await this.onSave(name, [...this.selected]);
 				this.close();
 			})();
+		};
+		save.addEventListener("click", submit);
+		nameInput.addEventListener("keydown", (event) => {
+			if (event.key === "Enter") {
+				event.preventDefault();
+				submit();
+			}
 		});
 
 		updateCounter();

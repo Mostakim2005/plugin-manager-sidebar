@@ -143,6 +143,15 @@
   * `src/modals/manifest-edit-modal.ts` -> `ManifestEditModal.onOpen`
   * `src/settings-tab.ts` -> `PluginManagerSettingTab.display`
 
+### [FEATURE: Clickable-Stats-Filters-And-QoL-Upgrades] | Aliases: stats click, copy id, search focus, group bulk select
+> **1-Line Summary:** Clickable header statistics pills, one-click plugin ID copying, search clear button, search focus command, and group modal bulk select controls.
+* **User Intention (Non-Negotiable):** Statistics badges in the header should double as instant filter shortcuts; plugin IDs should be easily copyable; clearing or focusing search should take zero extra clicks; and managing large groups should offer select/deselect all shortcuts.
+* **Visual / UI Behavior:** Header stats pills (Total, Enabled, Disabled, Official, Local, Updates) are interactive click targets with active indicators, toggling matching criteria on click. Plugin ID label copies ID to clipboard on click or via context menu. Search box features a clear ✕ button and a dedicated focus command. Group modal features Select all, Select filtered, and Deselect all buttons.
+* **Code Anchors (Grep Targets):**
+  * `src/views/plugin-manager-view.ts` -> `renderStats`, `buildSearchBox`, `copyPluginId`
+  * `src/modals/group-modal.ts` -> `addBulkSelectionButtons`
+  * `src/main.ts` -> `focusSearch`
+
 ## 3. Explicit Non-Goals
 * No custom plugin installer, registry mirror, or download cache.
 * No editing of official plugin source or manifests.

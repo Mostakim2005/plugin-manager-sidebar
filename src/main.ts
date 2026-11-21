@@ -70,6 +70,11 @@ export default class PluginManagerSidebar extends Plugin {
 			name: "Toggle sidebar",
 			callback: () => this.safe(() => this.toggleView(), "toggle sidebar"),
 		});
+		this.addCommand({
+			id: "focus-plugin-search",
+			name: "Focus plugin search",
+			callback: () => this.safe(() => this.focusSearch(), "focus plugin search"),
+		});
 
 		await this.scanHotReloadFiles();
 		void this.fetchOfficialRegistry().then(() => {
@@ -317,6 +322,16 @@ export default class PluginManagerSidebar extends Plugin {
 
 	activateView(): Promise<void> {
 		return this.sidebar.activate();
+	}
+
+	async focusSearch(): Promise<void> {
+		await this.activateView();
+		for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE)) {
+			if (leaf.view instanceof PluginManagerView) {
+				leaf.view.focusSearch();
+				break;
+			}
+		}
 	}
 
 	async exclusive(label: string, fn: () => Promise<void>): Promise<void> {
