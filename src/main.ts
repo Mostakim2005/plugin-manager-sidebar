@@ -27,6 +27,7 @@ import { PluginManagerView } from "./views/plugin-manager-view";
 export default class PluginManagerSidebar extends Plugin {
 	settings = sanitizeSettings(null);
 	private busy = false;
+	private settingsReady: Promise<void> = Promise.resolve();
 	private saveChain: Promise<void> = Promise.resolve();
 	private readonly sidebar = new SidebarController(this.app);
 	private readonly host = new HostBridge(this.app);
@@ -36,14 +37,17 @@ export default class PluginManagerSidebar extends Plugin {
 		return this.updates.registryLoaded;
 	}
 
-	async onload(): Promise<void> {
-		try {
-			this.settings = sanitizeSettings(await this.loadData());
-		} catch (error) {
-			logError("could not read saved settings", error);
-		}
+	onload(): void {
+		this.settingsReady = this.loadData()
+			.then((raw) => {
+				this.settings = sanitizeSettings(raw);
+				this.applyThemePreferences();
+				this.refreshViews();
+			})
+			.catch((error) => {
+				logError("could not read saved settings", error);
+			});
 
-		this.applyThemePreferences();
 		this.addSettingTab(new PluginManagerSettingTab(this.app, this));
 
 		this.registerView(VIEW_TYPE, (leaf) => new PluginManagerView(leaf, this));
@@ -74,6 +78,15 @@ export default class PluginManagerSidebar extends Plugin {
 		);
 		this.app.workspace.onLayoutReady(() => {
 			this.sidebar.syncRibbonState();
+			void this.settingsReady.then(() => {
+				void this.scanHotReloadFiles().then(() => this.refreshViews());
+				void this.fetchOfficialRegistry().then(() => {
+					this.refreshViews();
+					if (this.settings.autoCheckUpdates) {
+						void this.checkOfficialUpdates();
+					}
+				});
+			});
 		});
 		this.addCommand({
 			id: "open-plugin-manager",
@@ -89,14 +102,6 @@ export default class PluginManagerSidebar extends Plugin {
 			id: "focus-plugin-search",
 			name: "Focus plugin search",
 			callback: () => this.safe(() => this.focusSearch(), "focus plugin search"),
-		});
-
-		await this.scanHotReloadFiles();
-		void this.fetchOfficialRegistry().then(() => {
-			this.refreshViews();
-			if (this.settings.autoCheckUpdates) {
-				void this.checkOfficialUpdates();
-			}
 		});
 	}
 
@@ -126,6 +131,7 @@ export default class PluginManagerSidebar extends Plugin {
 
 	saveSettings(): Promise<void> {
 		this.saveChain = this.saveChain
+			.then(() => this.settingsReady)
 			.then(() => this.saveData(this.settings))
 			.catch((error: unknown) => logError("saving settings failed", error));
 		return this.saveChain;

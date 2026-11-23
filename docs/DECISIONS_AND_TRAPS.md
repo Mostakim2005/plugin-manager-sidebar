@@ -249,3 +249,9 @@ flowchart LR
 * **Why It Bites:** Rebuilding overwrites the known-good bundle, removing the user's rollback path.
 * **Rule:** Build only to the repository root; treat `runtime/` as read-only.
 * **Code Anchors (Grep Targets):** `esbuild.config.mjs`, `runtime/main.js`
+
+### [DECISION: Non-Blocking-Startup-Hydration] | Aliases: startup latency, non-blocking onload, deferred settings
+> **1-Line Summary:** Deferred loadData(), .hotreload folder scanning, and registry fetch out of synchronous onload() into settingsReady + onLayoutReady to eliminate serial startup I/O.
+* **Decision Maker:** `[DECIDED BY: HUMAN]`
+* **Protected Code Anchors (Grep Targets):** `src/main.ts` -> `onload`, `settingsReady`
+
